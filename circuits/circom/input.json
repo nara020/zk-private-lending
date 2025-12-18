@@ -1,0 +1,6 @@
+{
+  "collateral": "1000",
+  "salt": "12345",
+  "threshold": "500",
+  "commitment": "0"
+}

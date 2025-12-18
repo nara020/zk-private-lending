@@ -1,0 +1,18 @@
+{
+  "name": "zk-lending-circom",
+  "version": "1.0.0",
+  "description": "Circom DSL implementation for ZK comparison",
+  "scripts": {
+    "compile": "circom collateral.circom --r1cs --wasm --sym -o build",
+    "setup": "snarkjs groth16 setup build/collateral.r1cs pot12_final.ptau build/collateral_0000.zkey",
+    "contribute": "snarkjs zkey contribute build/collateral_0000.zkey build/collateral_final.zkey --name=\"First contribution\" -v",
+    "export-vkey": "snarkjs zkey export verificationkey build/collateral_final.zkey build/verification_key.json",
+    "prove": "snarkjs groth16 prove build/collateral_final.zkey build/witness.wtns build/proof.json build/public.json",
+    "verify": "snarkjs groth16 verify build/verification_key.json build/public.json build/proof.json",
+    "generate-verifier": "snarkjs zkey export solidityverifier build/collateral_final.zkey contracts/CollateralVerifier.sol"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.0"
+  }
+}
