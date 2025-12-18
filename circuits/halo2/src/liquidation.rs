@@ -23,6 +23,13 @@
 //! # Use Case
 //! Liquidators can prove a position is liquidatable without revealing
 //! the exact position details until liquidation is executed.
+//!
+//! # Circuit Statistics
+//! - Advice columns: 8 (collateral, debt, salt, price, threshold, computed values)
+//! - Instance columns: 1 (public inputs)
+//! - Custom gates: 2 (computation, position hash)
+//! - Lookup tables: 1 (range check for comparison)
+//! - Privacy: Position details hidden until liquidation execution
 
 use ff::PrimeField;
 use halo2_proofs::{

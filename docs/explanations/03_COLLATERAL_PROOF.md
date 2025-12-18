@@ -392,40 +392,11 @@ pub fn compute_commitment(collateral: F, salt: F) -> F {
 }
 ```
 
-## 8. 면접 대비 Q&A
+## 8. Key Concepts
 
-```
-Q: "CollateralProof가 무엇을 증명하나요?"
+**Commitment Properties:**
+- **Binding**: Once committed, the collateral value cannot be changed without invalidating the proof
+- **Hiding**: The commitment reveals nothing about the actual collateral amount
 
-A: "두 가지를 동시에 증명합니다:
-   1. 내 담보가 최소 threshold 이상이다
-   2. 내가 말한 commitment은 실제 내 담보의 해시다
-
-   중요한 건 '담보가 얼마인지'는 공개하지 않으면서
-   '충분하다'는 것만 증명한다는 점입니다."
-
-
-Q: "Commitment은 왜 필요한가요?"
-
-A: "두 가지 이유입니다:
-
-   1. Binding: 한번 담보를 commit하면 나중에 바꿀 수 없음
-      → 증명 후 담보를 인출하면 commitment이 안 맞음
-
-   2. Privacy: commitment만으로는 담보 금액 역산 불가
-      → salt가 랜덤이면 brute-force도 불가능"
-
-
-Q: "Salt는 왜 필요한가요?"
-
-A: "같은 담보에 다른 commitment을 만들기 위해서입니다.
-
-   Salt 없이 commitment = hash(collateral)이면:
-   - 1000 ETH → 항상 같은 hash
-   - 공격자가 모든 값 hash해서 역산 가능
-
-   Salt 있으면:
-   - 1000 ETH + salt1 → hash1
-   - 1000 ETH + salt2 → hash2 (다름)
-   - 역산 불가능 (salt 모르면)"
-```
+**Salt Purpose:**
+The salt ensures that identical collateral amounts produce different commitments, preventing rainbow table attacks where an attacker could precompute hashes for all possible values.

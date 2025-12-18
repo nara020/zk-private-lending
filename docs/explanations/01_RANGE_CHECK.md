@@ -215,23 +215,6 @@ vs Halo2:         1 constraint (lookup)
 const RANGE_BITS: usize = 64;  // 64-bit 범위
 ```
 
-## 6. 면접 대비 답변
+## 6. Implementation Notes
 
-```
-Q: "Range check를 어떻게 구현했나요?"
-
-A: "두 가지 방식을 구현해서 비교했습니다.
-
-1. Halo2 (Lookup Table):
-   - 미리 [0, 2^64) 값을 테이블에 로드
-   - lookup argument로 '값이 테이블에 있는가' 확인
-   - 1개 constraint로 64-bit 범위 체크
-
-2. arkworks (Bit Decomposition):
-   - 값을 64개 비트로 분해
-   - 각 비트가 0 또는 1인지 Boolean 제약
-   - ~128개 constraint 필요
-
-Halo2가 128배 효율적이지만, 테이블 메모리가 필요합니다.
-L2처럼 같은 범위 체크를 반복하는 경우 Halo2가 유리합니다."
-```
+The lookup table approach is particularly efficient for repeated range checks on the same bit width, making it ideal for DeFi applications where multiple values need validation within the same circuit.

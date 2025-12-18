@@ -269,46 +269,13 @@ LTV = 750/1000 = 75% == max_ltv ✓
 ✗ 정확한 collateral 금액
 ```
 
-## 8. 면접 대비 Q&A
+## 8. Design Decisions
 
-```
-Q: "LTV 검증을 어떻게 구현했나요?"
+**Division to Multiplication Transformation:**
+Converting `debt/collateral <= max_ltv` to `debt × 100 <= collateral × max_ltv` avoids expensive field inversion operations and enables reuse of the comparison gadget.
 
-A: "나눗셈을 피하기 위해 곱셈으로 변환했습니다.
+**Separate Commitments:**
+Using separate commitments for debt and collateral enables selective disclosure - either value can be revealed independently without compromising the other.
 
-   원래 조건: debt/collateral <= max_ltv
-   변환 후: debt × 100 <= collateral × max_ltv
-
-   이렇게 하면:
-   1. 나눗셈 없이 정수 연산만 사용
-   2. 유한체에서 효율적
-   3. Comparison Gadget 재사용 가능"
-
-
-Q: "두 개의 commitment을 사용하는 이유는?"
-
-A: "debt와 collateral 각각의 privacy를 위해서입니다.
-
-   만약 commitment 하나만 사용하면:
-   - commitment = hash(debt, collateral, salt)
-   - 나중에 둘 중 하나만 공개하기 어려움
-
-   별도 commitment로:
-   - debt_commitment: 나중에 debt만 공개 가능
-   - collateral_commitment: 나중에 collateral만 공개 가능
-   - Selective disclosure 지원"
-
-
-Q: "정밀도 100은 충분한가요?"
-
-A: "현재는 1% 단위입니다.
-
-   더 정밀하게 하려면:
-   - PRECISION = 10000 → 0.01% 단위
-   - PRECISION = 1000000 → 0.0001% 단위
-
-   트레이드오프:
-   - 정밀도 높을수록 overflow 위험
-   - 64-bit 범위 내에서 선택 필요
-   - 대부분 DeFi는 0.1% 단위로 충분"
-```
+**Precision Considerations:**
+PRECISION = 100 provides 1% granularity. For higher precision (0.01%), use PRECISION = 10000, but verify overflow constraints within 64-bit range.

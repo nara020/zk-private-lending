@@ -29,31 +29,15 @@
    └── 실제 DeFi 시나리오
 ```
 
-## 각 문서 구성
+## Document Structure
 
-```
-모든 문서는 동일한 구조:
+Each document follows a consistent structure:
 
-1. 문제 정의
-   - 무엇을 증명하려는가?
-   - 왜 어려운가?
-
-2. 알고리즘 설명
-   - 핵심 아이디어
-   - 수학적 원리
-   - 시각화 다이어그램
-
-3. 코드 분석
-   - 실제 Rust 코드
-   - 라인별 설명
-
-4. 예시 실행
-   - 구체적인 숫자로 trace
-   - 성공/실패 케이스
-
-5. 면접 대비 Q&A
-   - 예상 질문과 답변
-```
+1. **Problem Definition** - What is being proved and why it's challenging
+2. **Algorithm Explanation** - Core ideas, mathematical principles, visualizations
+3. **Code Analysis** - Actual Rust implementation with line-by-line explanation
+4. **Example Execution** - Concrete numerical traces with success/failure cases
+5. **Implementation Notes** - Design decisions and production considerations
 
 ## Halo2 vs arkworks 비교 요약
 
@@ -66,30 +50,17 @@
 | **Learning Curve** | 높음 | 중간 |
 | **L2 채택** | Scroll, Polygon | 일부 |
 
-## 면접 핵심 키워드
+## Key Technical Concepts
 
-```
-1. PLONKish Arithmetization
-   - Advice, Instance, Fixed columns
-   - Selector, Custom Gate, Lookup Table
+| Concept | Description |
+|---------|-------------|
+| PLONKish Arithmetization | Advice, Instance, Fixed columns; Selector, Custom Gate, Lookup Table |
+| R1CS | Rank-1 Constraint System; a·b = c constraints; Bit decomposition |
+| Commitment Scheme | Hiding (information concealment) + Binding (value locking) |
+| Soundness | False proofs are computationally infeasible |
+| Zero-Knowledge | Verifier learns nothing beyond statement validity |
 
-2. R1CS
-   - Rank-1 Constraint System
-   - a·b = c 형태의 제약
-   - Bit decomposition
-
-3. Commitment Scheme
-   - Hiding (정보 숨김)
-   - Binding (값 고정)
-
-4. Soundness
-   - 거짓 증명 불가능
-
-5. Zero-Knowledge
-   - Verifier가 추가 정보 획득 불가
-```
-
-## 프로덕션 체크리스트
+## Production Checklist
 
 - [ ] Poseidon Hash로 commitment 교체
 - [ ] 암호학적 난수 생성기 (salt)

@@ -263,35 +263,6 @@ diff = (2^63 - 1) - 0 + 2^63 = 2^64 - 1
 2^64 - 1 < 2^64 이므로 범위 내 ✓
 ```
 
-## 7. 면접 대비 답변
+## 7. Design Rationale
 
-```
-Q: "ZK에서 비교 연산을 어떻게 구현했나요?"
-
-A: "유한체에서는 음수가 없어서 직접 비교가 안 됩니다.
-
-   해결책으로 Offset 기법을 사용했습니다:
-   1. diff = a - b + offset 계산 (offset = 2^63)
-   2. diff에 대해 range check 수행
-
-   원리:
-   - a >= b이면 diff는 작은 양수 + offset = 유효 범위 내
-   - a < b이면 diff는 매우 큰 수 (p에 가까움) = 범위 초과
-
-   Halo2에서는 range check가 lookup 1개로 가능해서
-   전체 비교도 2-3개 constraint로 완료됩니다.
-
-   arkworks R1CS에서는 bit decomposition 필요해서
-   ~128개 constraint가 필요합니다."
-
-Q: "왜 offset으로 2^(BITS-1)을 선택했나요?"
-
-A: "대칭성 때문입니다.
-
-   64-bit 값의 범위가 [0, 2^63)이면:
-   - a - b의 범위: (-2^63, 2^63)
-   - offset = 2^63 더하면: (0, 2^64)
-
-   이렇게 하면 정확히 [0, 2^64) 범위로 매핑되어
-   range check 한 번으로 검증 가능합니다."
-```
+The offset value of 2^(BITS-1) is chosen for symmetry: it maps the possible difference range (-2^63, 2^63) to exactly (0, 2^64), enabling a single range check to validate the comparison.

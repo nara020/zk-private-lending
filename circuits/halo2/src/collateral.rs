@@ -18,6 +18,13 @@
 //! - **Soundness**: Cannot prove false statement (collateral < threshold)
 //! - **Zero-Knowledge**: Verifier learns nothing except validity
 //! - **Binding**: Cannot change collateral after commitment
+//!
+//! # Circuit Statistics
+//! - Advice columns: 4 (collateral, salt, threshold, commitment)
+//! - Instance columns: 1 (public inputs)
+//! - Custom gates: 1 (commitment verification)
+//! - Lookup tables: 1 (range check for comparison)
+//! - Estimated rows: ~2^17 for 64-bit range checks
 
 use ff::PrimeField;
 use halo2_proofs::{

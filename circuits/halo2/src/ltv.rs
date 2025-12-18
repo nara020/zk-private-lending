@@ -3,7 +3,7 @@
 //! Proves that Loan-to-Value ratio is within acceptable bounds:
 //! `(debt / collateral) <= max_ltv`
 //!
-//! Rearranged for integer arithmetic:
+//! Rearranged for integer arithmetic (avoids division in finite fields):
 //! `debt * 100 <= collateral * max_ltv`
 //!
 //! # Public Inputs
@@ -21,6 +21,13 @@
 //! - debt: 60 ETH
 //! - max_ltv: 80%
 //! - LTV = 60/100 = 60% <= 80% ✓
+//!
+//! # Circuit Statistics
+//! - Advice columns: 8 (debt, collateral, salts, scaled values, commitments)
+//! - Instance columns: 1 (public inputs)
+//! - Custom gates: 2 (debt scaling, commitments)
+//! - Lookup tables: 1 (range check for comparison)
+//! - Constraint optimization: Division transformed to multiplication
 
 use ff::PrimeField;
 use halo2_proofs::{

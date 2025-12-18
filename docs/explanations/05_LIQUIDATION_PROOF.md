@@ -317,49 +317,19 @@ T=1: 가격 20% 하락
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 10. 면접 대비 Q&A
+## 10. Implementation Details
 
-```
-Q: "왜 gt (strictly greater)를 사용하나요?"
+**Strictly Greater (gt) vs Greater-or-Equal (gte):**
+The circuit uses `gt` (strictly greater) because liquidation requires HF < 1.0, not HF <= 1.0. A position exactly at HF = 1.0 is still considered safe.
 
-A: "청산 조건이 HF < 1.0이기 때문입니다.
+**Liquidator Information Access:**
+In a production system, liquidators would obtain position information through:
+- Off-chain monitoring with partial information leakage
+- Keeper systems where position owners voluntarily share data
+- Incentive mechanisms for timely liquidations
 
-   - HF = 1.0은 정확히 경계선
-   - 이 경우 아직 청산 불가 (안전 마진)
-   - HF < 1.0만 청산 가능
-
-   gt를 사용하면:
-   - debt_scaled > collateral_value
-   - 즉, debt × PRECISION² > collateral × price × liq_threshold
-   - 이는 HF < 1.0과 동치"
-
-
-Q: "청산자는 어떻게 포지션 정보를 아나요?"
-
-A: "두 가지 방법이 있습니다:
-
-   1. 오프체인 모니터링:
-      - 포지션 생성 시 일부 정보 누출 가능
-      - 또는 포지션 소유자가 공유
-
-   2. 프로토콜 디자인:
-      - 'keeper' 시스템 운영
-      - 사용자가 자발적으로 keeper에게 정보 제공
-      - 청산 시 보상 공유"
-
-
-Q: "Oracle 가격은 어떻게 신뢰하나요?"
-
-A: "이건 ZK 외부의 문제입니다.
-
-   ZK가 보장하는 것:
-   - 주어진 price에서 HF < 1.0임
-
-   Oracle 문제:
-   - Chainlink 같은 신뢰할 수 있는 Oracle 사용
-   - TWAP (시간가중평균) 사용
-   - 다중 Oracle 집계
-
-   이 프로젝트에서는 Oracle 값이 public input으로
-   신뢰한다고 가정합니다."
-```
+**Oracle Trust Assumption:**
+The circuit assumes the oracle price is correct. Production deployments should use:
+- Chainlink or similar decentralized oracles
+- Time-weighted average prices (TWAP)
+- Multi-oracle aggregation for robustness
