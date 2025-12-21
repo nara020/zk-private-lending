@@ -47,5 +47,5 @@ coverage/
 # Private files (Claude Code context, personal notes)
 private/
 
-# Claude Code local settings (permissions)
-.claude/settings.local.json
+# Claude Code (entire folder - contains personal settings)
+.claude/
