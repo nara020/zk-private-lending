@@ -43,3 +43,9 @@ coverage/
 # Cache
 .cache/
 .parcel-cache/
+
+# Private files (Claude Code context, personal notes)
+private/
+
+# Claude Code local settings (permissions)
+.claude/settings.local.json
