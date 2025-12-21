@@ -30,6 +30,9 @@ pub mod gadgets;
 pub mod liquidation;
 pub mod ltv;
 
+#[cfg(feature = "wasm")]
+pub mod wasm;
+
 #[cfg(test)]
 mod tests;
 

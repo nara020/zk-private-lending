@@ -107,6 +107,43 @@ jobs:
           cargo bench --no-run
         continue-on-error: true
 
+  # ============ WASM Build ============
+  wasm:
+    name: WASM Build
+    runs-on: ubuntu-latest
+    needs: [halo2]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.12.1
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: circuits/halo2
+          cache-on-failure: true
+
+      - name: Build WASM package
+        run: |
+          cd circuits/halo2
+          wasm-pack build --target web --features wasm --release
+        continue-on-error: true
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-package
+          path: circuits/halo2/pkg/
+          if-no-files-found: warn
+
   # ============ Solidity Contract Tests ============
   foundry:
     name: Solidity Contracts
@@ -303,7 +340,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [rust, halo2, foundry, arkworks, circom, security, docker]
+    needs: [rust, halo2, wasm, foundry, arkworks, circom, security, docker]
     if: always()
 
     steps:
@@ -318,3 +355,4 @@ jobs:
             exit 1
           fi
           echo "All CI jobs passed!"
+          echo "WASM build status: ${{ needs.wasm.result }}"
