@@ -1,0 +1,9 @@
+{
+    "collateral": "1000000000000000000",
+    "collateral_salt": "12345",
+    "debt": "500000000",
+    "debt_salt": "67890",
+    "max_ltv": "75",
+    "collateral_commitment": "0",
+    "debt_commitment": "0"
+}
