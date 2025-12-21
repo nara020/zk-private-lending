@@ -53,6 +53,8 @@ pub use gadgets::{
 // Re-export commonly used types from halo2
 pub use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
-    pasta::Fp,
     plonk::{Circuit, ConstraintSystem, Error},
 };
+
+// Re-export Pasta curves
+pub use pasta_curves::Fp;

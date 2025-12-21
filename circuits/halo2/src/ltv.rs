@@ -32,15 +32,17 @@
 use ff::PrimeField;
 use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
-    pasta::Fp,
     plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Instance, Selector},
     poly::Rotation,
 };
+use pasta_curves::Fp;
 use std::marker::PhantomData;
 
 use crate::gadgets::comparison::{ComparisonChip, ComparisonConfig, ComparisonInstruction};
 
-const RANGE_BITS: usize = 64;
+/// Note: For production 64-bit range checks, decompose into multiple smaller checks
+/// Using 16 bits for demo/testing (2^16 = 65536 entries fits in lookup table)
+const RANGE_BITS: usize = 16;
 const LTV_PRECISION: u64 = 100; // LTV in percentage (80 = 80%)
 
 /// Configuration for LTV circuit
@@ -104,7 +106,13 @@ impl<F: PrimeField> LTVCircuit<F> {
         }
     }
 
-    /// Simplified commitment (use Poseidon in production)
+    /// Compute commitment for demo/testing
+    ///
+    /// commitment = value * salt + value
+    ///
+    /// NOTE: This is a simplified commitment for circuit demonstration.
+    /// For production use, replace with Poseidon hash and implement
+    /// Poseidon verification as circuit constraints.
     pub fn compute_commitment(value: F, salt: F) -> F {
         value * salt + value
     }

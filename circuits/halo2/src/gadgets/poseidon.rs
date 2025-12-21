@@ -12,6 +12,16 @@
 //! - Designed for ZK circuits (algebraic structure)
 //! - ~300 constraints vs ~25000 for SHA256
 //! - Used by Zcash, Filecoin, Polygon Hermez
+//!
+//! # Usage
+//! ```rust
+//! use zk_private_lending_circuits::gadgets::poseidon::poseidon_hash;
+//! use halo2_proofs::pasta::Fp;
+//!
+//! let collateral = Fp::from(1000u64);
+//! let salt = Fp::from(12345u64);
+//! let commitment = poseidon_hash(collateral, salt);
+//! ```
 
 use ff::PrimeField;
 use halo2_proofs::{
@@ -287,6 +297,115 @@ impl<F: PrimeField> PoseidonChip<F> {
     }
 }
 
+// ============================================================================
+// STANDALONE POSEIDON HASH (for use outside circuits)
+// ============================================================================
+
+/// Compute Poseidon hash of two field elements (standalone, no circuit)
+///
+/// This function computes the same hash as the in-circuit Poseidon gadget,
+/// allowing for commitment computation in the API layer.
+///
+/// # Arguments
+/// * `input1` - First input field element (e.g., collateral amount)
+/// * `input2` - Second input field element (e.g., salt)
+///
+/// # Returns
+/// The Poseidon hash H(input1, input2)
+///
+/// # Example
+/// ```rust
+/// use halo2_proofs::pasta::Fp;
+/// use zk_private_lending_circuits::gadgets::poseidon::poseidon_hash;
+///
+/// let commitment = poseidon_hash(Fp::from(1000u64), Fp::from(12345u64));
+/// ```
+pub fn poseidon_hash<F: PrimeField>(input1: F, input2: F) -> F {
+    let rc = round_constants::<F>();
+    let mds = mds_matrix::<F>();
+    let total_rounds = FULL_ROUNDS + PARTIAL_ROUNDS;
+
+    // Initialize state: [input1, input2, 0] (capacity element)
+    let mut state = [input1, input2, F::ZERO];
+
+    // Add first round constants
+    for i in 0..POSEIDON_WIDTH {
+        state[i] += rc[0][i];
+    }
+
+    // Process all rounds
+    for round in 0..total_rounds {
+        let is_full_round = round < FULL_ROUNDS / 2
+            || round >= FULL_ROUNDS / 2 + PARTIAL_ROUNDS;
+
+        // Apply S-box (x^5)
+        if is_full_round {
+            // Full round: S-box on all elements
+            for i in 0..POSEIDON_WIDTH {
+                let x2 = state[i] * state[i];
+                let x4 = x2 * x2;
+                state[i] = x4 * state[i]; // x^5
+            }
+        } else {
+            // Partial round: S-box only on first element
+            let x2 = state[0] * state[0];
+            let x4 = x2 * x2;
+            state[0] = x4 * state[0]; // x^5
+        }
+
+        // Apply MDS matrix
+        let mut new_state = [F::ZERO; POSEIDON_WIDTH];
+        for i in 0..POSEIDON_WIDTH {
+            for j in 0..POSEIDON_WIDTH {
+                new_state[i] += mds[i][j] * state[j];
+            }
+        }
+        state = new_state;
+
+        // Add round constants for next round
+        if round + 1 < total_rounds {
+            for i in 0..POSEIDON_WIDTH {
+                state[i] += rc[round + 1][i];
+            }
+        }
+    }
+
+    // Output is first element of final state
+    state[0]
+}
+
+/// Compute a commitment to a value using Poseidon hash
+///
+/// commitment = Poseidon(value, salt)
+///
+/// This is the primary function for creating privacy-preserving commitments
+/// in the ZK lending protocol.
+///
+/// # Arguments
+/// * `value` - The value to commit to (e.g., collateral amount)
+/// * `salt` - Random salt for hiding property
+///
+/// # Security
+/// - **Hiding**: Given commitment, cannot determine value without salt
+/// - **Binding**: Cannot find different (value', salt') with same commitment
+pub fn compute_commitment<F: PrimeField>(value: F, salt: F) -> F {
+    poseidon_hash(value, salt)
+}
+
+/// Compute commitment from u128 values (convenience function)
+///
+/// Converts u128 to field element before hashing.
+/// Used by the API layer where values come as integers.
+pub fn compute_commitment_u128<F: PrimeField>(value: u128, salt: u128) -> F {
+    let value_f = F::from_u128(value);
+    let salt_f = F::from_u128(salt);
+    poseidon_hash(value_f, salt_f)
+}
+
+// ============================================================================
+// LEGACY SIMPLE COMMITMENT (for backward compatibility in tests)
+// ============================================================================
+
 /// Simplified Poseidon for testing (matches our previous commitment function format)
 /// This is used when full Poseidon is too expensive for testing
 pub mod simple {
@@ -381,9 +500,9 @@ mod tests {
     use halo2_proofs::{
         circuit::SimpleFloorPlanner,
         dev::MockProver,
-        pasta::Fp,
         plonk::Circuit,
     };
+    use pasta_curves::Fp;
 
     #[derive(Clone)]
     struct SimpleCommitmentTestCircuit {

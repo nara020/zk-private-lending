@@ -28,17 +28,19 @@
 
 use ff::PrimeField;
 use halo2_proofs::{
-    circuit::{AssignedCell, Layouter, SimpleFloorPlanner, Value},
-    pasta::Fp,
+    circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Instance, Selector},
     poly::Rotation,
 };
+use pasta_curves::Fp;
 use std::marker::PhantomData;
 
 use crate::gadgets::comparison::{ComparisonChip, ComparisonConfig, ComparisonInstruction};
 
-/// Number of bits for range checks (64-bit values)
-const RANGE_BITS: usize = 64;
+/// Number of bits for range checks
+/// Note: For production 64-bit range checks, decompose into multiple smaller checks
+/// Using 16 bits for demo/testing (2^16 = 65536 entries fits in lookup table)
+const RANGE_BITS: usize = 16;
 
 /// Configuration for the CollateralProof circuit
 #[derive(Debug, Clone)]
@@ -95,12 +97,16 @@ impl<F: PrimeField> CollateralCircuit<F> {
         }
     }
 
-    /// Compute commitment: simple hash for now (Poseidon in production)
-    /// commitment = collateral * salt + collateral (simplified)
-    /// In production, use Poseidon hash
+    /// Compute commitment for demo/testing
+    ///
+    /// commitment = collateral * salt + collateral
+    ///
+    /// NOTE: This is a simplified commitment for circuit demonstration.
+    /// For production use, replace with Poseidon hash and implement
+    /// Poseidon verification as circuit constraints.
+    ///
+    /// The formula matches the circuit's custom gate constraint.
     pub fn compute_commitment(collateral: F, salt: F) -> F {
-        // Simplified commitment for demonstration
-        // Production: use Poseidon(collateral, salt)
         collateral * salt + collateral
     }
 }

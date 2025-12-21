@@ -34,15 +34,17 @@
 use ff::PrimeField;
 use halo2_proofs::{
     circuit::{Layouter, SimpleFloorPlanner, Value},
-    pasta::Fp,
     plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Instance, Selector},
     poly::Rotation,
 };
+use pasta_curves::Fp;
 use std::marker::PhantomData;
 
 use crate::gadgets::comparison::{ComparisonChip, ComparisonConfig, ComparisonInstruction};
 
-const RANGE_BITS: usize = 64;
+/// Note: For production 64-bit range checks, decompose into multiple smaller checks
+/// Using 16 bits for demo/testing (2^16 = 65536 entries fits in lookup table)
+const RANGE_BITS: usize = 16;
 const PRECISION: u64 = 100; // For percentage calculations
 
 /// Configuration for Liquidation circuit
@@ -116,8 +118,15 @@ impl<F: PrimeField> LiquidationCircuit<F> {
         }
     }
 
-    /// Position commitment: Hash(collateral, debt, salt)
-    /// Simplified for demo; use Poseidon in production
+    /// Position commitment for demo/testing
+    ///
+    /// position_hash = collateral * salt + debt * salt + collateral + debt
+    ///
+    /// NOTE: This is a simplified commitment for circuit demonstration.
+    /// For production use, replace with Poseidon hash and implement
+    /// Poseidon verification as circuit constraints.
+    ///
+    /// The formula matches the circuit's custom gate constraint.
     pub fn compute_position_hash(collateral: F, debt: F, salt: F) -> F {
         collateral * salt + debt * salt + collateral + debt
     }
@@ -125,6 +134,11 @@ impl<F: PrimeField> LiquidationCircuit<F> {
     /// Check if position is liquidatable
     /// HF = (collateral * price * liq_threshold) / (debt * 100)
     /// Liquidatable when HF < 1, i.e., collateral_value < debt_scaled
+    ///
+    /// Example: collateral=100, price=1, liq_threshold=85, debt=90
+    /// collateral_value = 100 * 1 * 85 = 8500
+    /// debt_scaled = 90 * 100 = 9000
+    /// HF = 8500 / 9000 = 0.94 < 1 → liquidatable
     pub fn is_liquidatable(
         collateral: u64,
         debt: u64,
@@ -132,7 +146,7 @@ impl<F: PrimeField> LiquidationCircuit<F> {
         liquidation_threshold: u64,
     ) -> bool {
         let collateral_value = collateral * price * liquidation_threshold;
-        let debt_scaled = debt * PRECISION * PRECISION; // debt * 100 * 100
+        let debt_scaled = debt * PRECISION; // debt * 100
         collateral_value < debt_scaled
     }
 }
@@ -171,7 +185,7 @@ impl Circuit<Fp> for LiquidationCircuit<Fp> {
 
         // Computation gate:
         // collateral_value = collateral * price * liquidation_threshold
-        // debt_scaled = debt * PRECISION * PRECISION
+        // debt_scaled = debt * PRECISION
         meta.create_gate("liquidation computation", |meta| {
             let q = meta.query_selector(q_compute);
             let coll = meta.query_advice(collateral, Rotation::cur());
@@ -180,15 +194,15 @@ impl Circuit<Fp> for LiquidationCircuit<Fp> {
             let lt = meta.query_advice(liquidation_threshold, Rotation::cur());
             let cv = meta.query_advice(collateral_value, Rotation::cur());
             let ds = meta.query_advice(debt_scaled, Rotation::cur());
-            let precision_sq = halo2_proofs::plonk::Expression::Constant(
-                Fp::from(PRECISION * PRECISION)
+            let precision = halo2_proofs::plonk::Expression::Constant(
+                Fp::from(PRECISION)
             );
 
             vec![
                 // cv = coll * price * liq_threshold
                 q.clone() * (cv - coll * p * lt),
-                // ds = debt * PRECISION^2
-                q * (ds - d * precision_sq),
+                // ds = debt * PRECISION
+                q * (ds - d * precision),
             ]
         });
 
@@ -276,8 +290,8 @@ impl Circuit<Fp> for LiquidationCircuit<Fp> {
                         || cv_val,
                     )?;
 
-                    // Compute debt_scaled = debt * PRECISION^2
-                    let ds_val = self.debt.map(|d| d * Fp::from(PRECISION * PRECISION));
+                    // Compute debt_scaled = debt * PRECISION
+                    let ds_val = self.debt.map(|d| d * Fp::from(PRECISION));
                     let debt_scaled_cell = region.assign_advice(
                         || "debt_scaled",
                         config.debt_scaled,
@@ -352,10 +366,11 @@ mod tests {
     fn test_liquidatable_position() {
         let k = 17;
 
-        // Scenario: Position is underwater
-        // collateral=100, price=1, liq_threshold=85
-        // debt=90
-        // HF = (100 * 1 * 85) / (90 * 100) = 8500 / 9000 = 0.94 < 1 ✓
+        // Scenario: Position is underwater (values fit in 16-bit range)
+        // collateral=100, price=1, liq_threshold=85, debt=90
+        // collateral_value = 100 * 1 * 85 = 8500
+        // debt_scaled = 90 * 100 = 9000
+        // HF = 8500 / 9000 = 0.94 < 1 ✓
         let (circuit, public_inputs) = create_liquidation_circuit(100, 90, 1, 85);
 
         let prover = MockProver::run(k, &circuit, vec![public_inputs]).unwrap();
@@ -366,11 +381,12 @@ mod tests {
     fn test_price_drop_liquidation() {
         let k = 17;
 
-        // Scenario: Price dropped, now liquidatable
-        // collateral=100, price=80 (dropped from 100), liq_threshold=85
-        // debt=70
-        // HF = (100 * 80 * 85) / (70 * 100 * 100) = 680000 / 700000 = 0.97 < 1 ✓
-        let (circuit, public_inputs) = create_liquidation_circuit(100, 70, 80, 85);
+        // Scenario: Price dropped, now liquidatable (values fit in 16-bit range)
+        // collateral=10, price=8 (dropped), liq_threshold=85, debt=70
+        // collateral_value = 10 * 8 * 85 = 6800
+        // debt_scaled = 70 * 100 = 7000
+        // HF = 6800 / 7000 = 0.97 < 1 ✓
+        let (circuit, public_inputs) = create_liquidation_circuit(10, 70, 8, 85);
 
         let prover = MockProver::run(k, &circuit, vec![public_inputs]).unwrap();
         assert_eq!(prover.verify(), Ok(()), "Price drop should trigger liquidation");
@@ -380,11 +396,12 @@ mod tests {
     fn test_healthy_position_fails() {
         let k = 17;
 
-        // Scenario: Healthy position (not liquidatable)
-        // collateral=100, price=100, liq_threshold=85
-        // debt=50
-        // HF = (100 * 100 * 85) / (50 * 100 * 100) = 850000 / 500000 = 1.7 > 1 ✗
-        let (circuit, public_inputs) = create_liquidation_circuit(100, 50, 100, 85);
+        // Scenario: Healthy position (not liquidatable, values fit in 16-bit range)
+        // collateral=100, price=1, liq_threshold=85, debt=50
+        // collateral_value = 100 * 1 * 85 = 8500
+        // debt_scaled = 50 * 100 = 5000
+        // HF = 8500 / 5000 = 1.7 > 1 ✗
+        let (circuit, public_inputs) = create_liquidation_circuit(100, 50, 1, 85);
 
         let prover = MockProver::run(k, &circuit, vec![public_inputs]).unwrap();
         assert!(prover.verify().is_err(), "Healthy position should NOT be liquidatable");
@@ -394,12 +411,12 @@ mod tests {
     fn test_borderline_liquidation() {
         let k = 17;
 
-        // Borderline case: exactly at liquidation threshold
-        // Need HF slightly below 1.0
-        // collateral=100, price=99, liq_threshold=85
-        // debt=85
-        // HF = (100 * 99 * 85) / (85 * 100 * 100) = 841500 / 850000 = 0.99 < 1 ✓
-        let (circuit, public_inputs) = create_liquidation_circuit(100, 85, 99, 85);
+        // Borderline case: HF slightly below 1.0 (values fit in 16-bit range)
+        // collateral=10, price=10, liq_threshold=85, debt=86
+        // collateral_value = 10 * 10 * 85 = 8500
+        // debt_scaled = 86 * 100 = 8600
+        // HF = 8500 / 8600 = 0.988 < 1 ✓
+        let (circuit, public_inputs) = create_liquidation_circuit(10, 86, 10, 85);
 
         let prover = MockProver::run(k, &circuit, vec![public_inputs]).unwrap();
         assert_eq!(prover.verify(), Ok(()), "Borderline case should be liquidatable");
@@ -407,9 +424,12 @@ mod tests {
 
     #[test]
     fn test_is_liquidatable_helper() {
-        // Test the helper function
+        // Test the helper function (with values that fit in 16-bit range)
+        // Case 1: collateral_value=8500 < debt_scaled=9000 → liquidatable
         assert!(LiquidationCircuit::<Fp>::is_liquidatable(100, 90, 1, 85));
-        assert!(LiquidationCircuit::<Fp>::is_liquidatable(100, 70, 80, 85));
-        assert!(!LiquidationCircuit::<Fp>::is_liquidatable(100, 50, 100, 85));
+        // Case 2: collateral_value=6800 < debt_scaled=7000 → liquidatable
+        assert!(LiquidationCircuit::<Fp>::is_liquidatable(10, 70, 8, 85));
+        // Case 3: collateral_value=8500 > debt_scaled=5000 → NOT liquidatable
+        assert!(!LiquidationCircuit::<Fp>::is_liquidatable(100, 50, 1, 85));
     }
 }

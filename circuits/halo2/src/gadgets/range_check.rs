@@ -132,9 +132,9 @@ mod tests {
     use halo2_proofs::{
         circuit::SimpleFloorPlanner,
         dev::MockProver,
-        pasta::Fp,
         plonk::Circuit,
     };
+    use pasta_curves::Fp;
 
     #[derive(Default, Clone)]
     struct RangeCheckTestCircuit<const BITS: usize> {

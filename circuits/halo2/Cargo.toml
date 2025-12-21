@@ -10,8 +10,11 @@ license = "MIT"
 # PSE Halo2 (used by Scroll, Polygon zkEVM)
 halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v0.3.0" }
 
-# Poseidon hash for commitments
-halo2_gadgets = { git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v0.3.0" }
+# Note: Custom Poseidon implementation in gadgets/poseidon.rs
+# (halo2_gadgets not needed - we implemented our own ZK-friendly Poseidon)
+
+# Pasta curves (Pallas/Vesta for Halo2)
+pasta_curves = "0.5"
 
 # Field arithmetic
 ff = "0.13"

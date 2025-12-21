@@ -1,12 +1,17 @@
 //! Comparison Gadget for Greater-Than-Or-Equal
 //!
-//! Proves a >= b by showing (a - b) is non-negative (in range [0, 2^BITS))
+//! Proves a >= b by showing (a - b) is in range [0, 2^BITS).
 //!
 //! # Strategy
-//! 1. Compute diff = a - b + offset (where offset = 2^(BITS-1))
+//! 1. Compute diff = a - b (in finite field)
 //! 2. Range check that diff is in [0, 2^BITS)
-//! 3. If a >= b, then diff is non-negative and in range
-//! 4. If a < b, diff would be negative (wraps around, fails range check)
+//! 3. If a >= b, diff is small and in range
+//! 4. If a < b, diff wraps to p - (b - a) which is huge, failing range check
+//!
+//! # Important Constraint
+//! Both a and b MUST be in range [0, 2^BITS) for this to work correctly.
+//! If a and b can exceed 2^BITS, the caller must ensure they are range-checked
+//! before using this comparison.
 //!
 //! # Example
 //! ```ignore
@@ -16,7 +21,7 @@
 
 use ff::PrimeField;
 use halo2_proofs::{
-    circuit::{AssignedCell, Layouter, Value},
+    circuit::{AssignedCell, Layouter},
     plonk::{Advice, Column, ConstraintSystem, Error, Selector},
     poly::Rotation,
 };
@@ -66,11 +71,6 @@ pub struct ComparisonChip<F: PrimeField, const BITS: usize> {
 }
 
 impl<F: PrimeField, const BITS: usize> ComparisonChip<F, BITS> {
-    /// Offset to ensure non-negative difference: 2^(BITS-1)
-    fn offset() -> F {
-        F::from(1u64 << (BITS - 1))
-    }
-
     /// Create a new comparison chip
     pub fn construct(config: ComparisonConfig<F, BITS>) -> Self {
         Self { config }
@@ -88,17 +88,17 @@ impl<F: PrimeField, const BITS: usize> ComparisonChip<F, BITS> {
         // Configure range check for the difference
         let range_check = RangeCheckChip::<F, BITS>::configure(meta, diff);
 
-        // Custom gate: diff = a - b + offset
+        // Custom gate: diff = a - b
+        // In finite field: if a >= b, diff is small; if a < b, diff wraps to huge value
         meta.create_gate("comparison", |meta| {
             let q = meta.query_selector(q_cmp);
             let a = meta.query_advice(a, Rotation::cur());
             let b = meta.query_advice(b, Rotation::cur());
             let diff = meta.query_advice(diff, Rotation::cur());
 
-            // Constraint: diff = a - b + offset
-            // Rearranged: diff - a + b - offset = 0
-            let offset = halo2_proofs::plonk::Expression::Constant(Self::offset());
-            vec![q * (diff - a + b - offset)]
+            // Constraint: diff = a - b
+            // Rearranged: diff - a + b = 0
+            vec![q * (diff - a + b)]
         });
 
         ComparisonConfig {
@@ -135,9 +135,11 @@ impl<F: PrimeField, const BITS: usize> ComparisonInstruction<F> for ComparisonCh
                 a.copy_advice(|| "a", &mut region, self.config.a, 0)?;
                 b.copy_advice(|| "b", &mut region, self.config.b, 0)?;
 
-                // Compute and assign diff = a - b + offset
+                // Compute and assign diff = a - b
+                // In finite field: if a >= b, diff is small (in range)
+                // If a < b, diff = p - (b - a) is huge (fails range check)
                 let diff_value = a.value().zip(b.value()).map(|(a, b)| {
-                    *a - *b + Self::offset()
+                    *a - *b
                 });
 
                 region.assign_advice(|| "diff", self.config.diff, 0, || diff_value)
@@ -179,11 +181,11 @@ impl<F: PrimeField, const BITS: usize> ComparisonInstruction<F> for ComparisonCh
 mod tests {
     use super::*;
     use halo2_proofs::{
-        circuit::SimpleFloorPlanner,
+        circuit::{SimpleFloorPlanner, Value},
         dev::MockProver,
-        pasta::Fp,
         plonk::Circuit,
     };
+    use pasta_curves::Fp;
 
     #[derive(Clone)]
     struct ComparisonTestCircuit<const BITS: usize> {
