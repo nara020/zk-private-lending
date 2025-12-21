@@ -692,28 +692,158 @@ contract ZKLendingPoolTest is Test {
     }
 
     // ====================================================================
+    // ====================== INTEREST TESTS ==============================
+    // ====================================================================
+
+    /// @notice 이자율 상수 확인 테스트
+    function test_InterestRateConstants() public view {
+        assertEq(pool.INTEREST_RATE_BASE(), 10000, "Interest rate base should be 10000");
+        assertEq(pool.BASE_INTEREST_RATE(), 500, "Base rate should be 5%");
+        assertEq(pool.VARIABLE_INTEREST_RATE(), 2000, "Variable rate should be 20%");
+        assertEq(pool.OPTIMAL_UTILIZATION(), 80, "Optimal utilization should be 80%");
+    }
+
+    /// @notice 이용률 계산 테스트
+    function test_UtilizationRate() public {
+        // 대출 없을 때: 0%
+        assertEq(pool.getUtilizationRate(), 0, "Utilization should be 0 with no borrows");
+
+        // 대출 후 이용률 계산
+        _depositAsAlice();
+        _borrowAsAlice(BORROW_AMOUNT);
+
+        uint256 utilization = pool.getUtilizationRate();
+        assertGt(utilization, 0, "Utilization should be > 0 after borrow");
+    }
+
+    /// @notice 이자율 계산 테스트
+    function test_CurrentInterestRate() public view {
+        // 대출 없을 때 기본 이자율
+        uint256 rate = pool.getCurrentInterestRate();
+        assertEq(rate, 500, "Base interest rate should be 5%");
+    }
+
+    /// @notice 이자 예상 계산 테스트
+    function test_EstimateInterest() public view {
+        uint256 amount = 10000 * 1e6; // $10,000
+        uint256 oneYear = 365 days;
+
+        uint256 interest = pool.estimateInterest(amount, oneYear);
+        // 5% APR: $10,000 * 0.05 = $500
+        assertApproxEqRel(interest, 500 * 1e6, 0.1e18, "Interest should be ~$500");
+    }
+
+    /// @notice 시간 경과 후 이자 발생 테스트
+    function test_InterestAccrual() public {
+        _depositAsAlice();
+        _borrowAsAlice(BORROW_AMOUNT);
+
+        // 초기 부채 확인
+        (uint256 principal, uint256 interestBefore, ) = pool.getCurrentDebt(alice);
+        assertEq(principal, BORROW_AMOUNT, "Principal should match borrow amount");
+        assertEq(interestBefore, 0, "Initial interest should be 0");
+
+        // 30일 경과
+        vm.warp(block.timestamp + 30 days);
+
+        // 이자 발생 확인
+        (, uint256 interestAfter, uint256 total) = pool.getCurrentDebt(alice);
+        assertGt(interestAfter, 0, "Interest should accrue over time");
+        assertEq(total, principal + interestAfter, "Total should be principal + interest");
+    }
+
+    /// @notice 이자 먼저 상환 테스트
+    function test_InterestPaidFirst() public {
+        _depositAsAlice();
+        _borrowAsAlice(BORROW_AMOUNT);
+
+        // 30일 경과
+        vm.warp(block.timestamp + 30 days);
+
+        (uint256 principal, uint256 interest, ) = pool.getCurrentDebt(alice);
+        require(interest > 0, "Interest should have accrued");
+
+        // 이자만큼만 상환
+        vm.startPrank(alice);
+        usdc.approve(address(pool), interest);
+        bytes32 newDebtCommitment = keccak256(abi.encodePacked(principal, uint256(77777)));
+        pool.repay(interest, newDebtCommitment, keccak256("interest_repay"));
+        vm.stopPrank();
+
+        // 원금은 그대로
+        assertEq(pool.borrowedAmount(alice), principal, "Principal should remain unchanged");
+    }
+
+    /// @notice payInterest 함수 테스트
+    function test_PayInterest() public {
+        _depositAsAlice();
+        _borrowAsAlice(BORROW_AMOUNT);
+
+        // 30일 경과
+        vm.warp(block.timestamp + 30 days);
+
+        (, uint256 interestBefore, ) = pool.getCurrentDebt(alice);
+        require(interestBefore > 0, "Interest should have accrued");
+
+        // payInterest 호출
+        vm.startPrank(alice);
+        usdc.approve(address(pool), interestBefore * 2); // 충분한 양 승인
+        pool.payInterest();
+        vm.stopPrank();
+
+        // 이자 청산 확인
+        (, uint256 interestAfter, ) = pool.getCurrentDebt(alice);
+        assertEq(interestAfter, 0, "Interest should be cleared after payment");
+    }
+
+    /// @notice APY 조회 테스트
+    function test_GetAPY() public view {
+        uint256 apy = pool.getAPY();
+        assertGe(apy, 500, "APY should be at least base rate");
+    }
+
+    // ====================================================================
     // ====================== POOL STATUS TESTS ===========================
     // ====================================================================
 
     function test_GetPoolStatus() public {
         _depositAsAlice();
 
-        (uint256 totalColl, uint256 totalBorrow, uint256 available) = pool.getPoolStatus();
+        (
+            uint256 totalColl,
+            uint256 totalBorrow,
+            uint256 available,
+            uint256 utilization,
+            uint256 interestRate,
+            uint256 totalInterest
+        ) = pool.getPoolStatus();
 
         assertEq(totalColl, DEPOSIT_AMOUNT, "Total collateral should match");
         assertEq(totalBorrow, 0, "Total borrow should be 0");
         assertEq(available, POOL_LIQUIDITY, "Available liquidity should match");
+        assertEq(utilization, 0, "Utilization should be 0 with no borrows");
+        assertGe(interestRate, 500, "Interest rate should be at least base rate");
+        assertEq(totalInterest, 0, "Total interest should be 0");
     }
 
     function test_GetPoolStatus_AfterBorrow() public {
         _depositAsAlice();
         _borrowAsAlice(BORROW_AMOUNT);
 
-        (uint256 totalColl, uint256 totalBorrow, uint256 available) = pool.getPoolStatus();
+        (
+            uint256 totalColl,
+            uint256 totalBorrow,
+            uint256 available,
+            uint256 utilization,
+            uint256 interestRate,
+            uint256 totalInterest
+        ) = pool.getPoolStatus();
 
         assertEq(totalColl, DEPOSIT_AMOUNT, "Total collateral should match");
         assertEq(totalBorrow, BORROW_AMOUNT, "Total borrow should match");
         assertEq(available, POOL_LIQUIDITY - BORROW_AMOUNT, "Available should decrease");
+        assertGt(utilization, 0, "Utilization should be > 0");
+        assertGe(interestRate, 500, "Interest rate should be at least base rate");
     }
 
     // ====================================================================
@@ -886,7 +1016,7 @@ contract ZKLendingPoolTest is Test {
 
         assertEq(pool.totalBorrowedUSDC(), POOL_LIQUIDITY, "Should borrow exact liquidity");
 
-        (, , uint256 available) = pool.getPoolStatus();
+        (, , uint256 available, , , ) = pool.getPoolStatus();
         assertEq(available, 0, "Available should be 0");
     }
 

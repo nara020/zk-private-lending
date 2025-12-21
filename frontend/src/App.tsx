@@ -22,9 +22,11 @@ import { PositionCard } from './components/PositionCard';
 import { DepositForm } from './components/DepositForm';
 import { BorrowForm } from './components/BorrowForm';
 import { RepayForm } from './components/RepayForm';
+import { WithdrawForm } from './components/WithdrawForm';
+import { LiquidateForm } from './components/LiquidateForm';
 import { useWallet } from './hooks/useWallet';
 
-type Tab = 'deposit' | 'borrow' | 'repay';
+type Tab = 'deposit' | 'borrow' | 'repay' | 'withdraw' | 'liquidate';
 
 function App() {
   const { address, isConnected } = useWallet();
@@ -76,7 +78,7 @@ function App() {
               <div className="rounded-2xl border border-purple-800/30 bg-black/40 backdrop-blur-sm">
                 {/* Tabs */}
                 <div className="flex border-b border-purple-800/30">
-                  {(['deposit', 'borrow', 'repay'] as Tab[]).map((tab) => (
+                  {(['deposit', 'borrow', 'repay', 'withdraw', 'liquidate'] as Tab[]).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -96,6 +98,8 @@ function App() {
                   {activeTab === 'deposit' && <DepositForm />}
                   {activeTab === 'borrow' && <BorrowForm />}
                   {activeTab === 'repay' && <RepayForm />}
+                  {activeTab === 'withdraw' && <WithdrawForm />}
+                  {activeTab === 'liquidate' && <LiquidateForm />}
                 </div>
               </div>
 

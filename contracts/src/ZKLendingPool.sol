@@ -58,6 +58,21 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
     /// @notice 기준 단위 (퍼센트 계산용)
     uint256 public constant PERCENTAGE_BASE = 100;
 
+    /// @notice 연 이자율 기준 (10000 = 100.00%)
+    uint256 public constant INTEREST_RATE_BASE = 10000;
+
+    /// @notice 1년 = 365일 (초 단위)
+    uint256 public constant SECONDS_PER_YEAR = 365 days;
+
+    /// @notice 기본 이자율 - 5% APR (500 / 10000)
+    uint256 public constant BASE_INTEREST_RATE = 500;
+
+    /// @notice 이용률에 따른 가변 이자율 - 최대 20% 추가 (2000 / 10000)
+    uint256 public constant VARIABLE_INTEREST_RATE = 2000;
+
+    /// @notice 최적 이용률 - 80%
+    uint256 public constant OPTIMAL_UTILIZATION = 80;
+
     // ============ 상태 변수 ============
 
     /// @notice ZK 검증기 컨트랙트
@@ -88,6 +103,24 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
     /// @dev 향후 개선: 대출 금액도 commitment로 숨기기
     mapping(address => uint256) public borrowedAmount;
 
+    /// @notice 사용자별 대출 시작 시간 (이자 계산용)
+    mapping(address => uint256) public borrowTimestamp;
+
+    /// @notice 사용자별 누적 이자
+    mapping(address => uint256) public accruedInterest;
+
+    /// @notice 마지막 이자 업데이트 시간 (글로벌)
+    uint256 public lastInterestUpdate;
+
+    /// @notice 누적 이자 인덱스 (레이 단위: 1e27)
+    uint256 public borrowIndex;
+
+    /// @notice 사용자별 스냅샷 인덱스
+    mapping(address => uint256) public userBorrowIndex;
+
+    /// @notice 총 누적 이자
+    uint256 public totalAccruedInterest;
+
     // ============ 이벤트 ============
 
     event Deposited(address indexed user, bytes32 commitment, uint256 timestamp);
@@ -102,6 +135,8 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
         uint256 timestamp
     );
     event PriceUpdated(uint256 oldPrice, uint256 newPrice);
+    event InterestAccrued(address indexed user, uint256 interest, uint256 timestamp);
+    event InterestPaid(address indexed user, uint256 amount, uint256 timestamp);
 
     // ============ 에러 ============
 
@@ -136,6 +171,86 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
         commitmentRegistry = ICommitmentRegistry(_commitmentRegistry);
         borrowToken = IERC20(_borrowToken);
         ethPrice = _initialEthPrice;
+
+        // 이자 인덱스 초기화 (1e27 = 1 RAY)
+        borrowIndex = 1e27;
+        lastInterestUpdate = block.timestamp;
+    }
+
+    // ============ 이자 계산 함수 ============
+
+    /// @notice 현재 이용률 계산 (0-100%)
+    function getUtilizationRate() public view returns (uint256) {
+        uint256 totalLiquidity = borrowToken.balanceOf(address(this)) + totalBorrowedUSDC;
+        if (totalLiquidity == 0) return 0;
+        return (totalBorrowedUSDC * 100) / totalLiquidity;
+    }
+
+    /// @notice 현재 이자율 계산 (연간, 10000 = 100%)
+    /// @dev 이용률에 따라 동적으로 변화하는 이자율 모델
+    function getCurrentInterestRate() public view returns (uint256) {
+        uint256 utilization = getUtilizationRate();
+
+        if (utilization <= OPTIMAL_UTILIZATION) {
+            // 이용률이 최적 이하: 선형 증가
+            // rate = BASE + (utilization / optimal) * VARIABLE
+            return BASE_INTEREST_RATE + (utilization * VARIABLE_INTEREST_RATE) / OPTIMAL_UTILIZATION;
+        } else {
+            // 이용률이 최적 초과: 급격히 증가 (유동성 부족 방지)
+            // rate = BASE + VARIABLE + (excess_utilization) * VARIABLE * 2
+            uint256 excessUtilization = utilization - OPTIMAL_UTILIZATION;
+            uint256 excessRate = (excessUtilization * VARIABLE_INTEREST_RATE * 2) / (100 - OPTIMAL_UTILIZATION);
+            return BASE_INTEREST_RATE + VARIABLE_INTEREST_RATE + excessRate;
+        }
+    }
+
+    /// @notice 사용자의 현재 부채 (원금 + 이자) 계산
+    function getCurrentDebt(address user) public view returns (uint256 principal, uint256 interest, uint256 total) {
+        principal = borrowedAmount[user];
+        if (principal == 0) return (0, 0, 0);
+
+        // 시간 경과 계산
+        uint256 timeElapsed = block.timestamp - borrowTimestamp[user];
+        if (timeElapsed == 0) return (principal, 0, principal);
+
+        // 단순 이자 계산: interest = principal * rate * time / (RATE_BASE * SECONDS_PER_YEAR)
+        uint256 rate = getCurrentInterestRate();
+        interest = (principal * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+        interest += accruedInterest[user]; // 기존 누적 이자 추가
+
+        total = principal + interest;
+        return (principal, interest, total);
+    }
+
+    /// @notice 글로벌 이자 업데이트 (내부 함수)
+    function _accrueInterest() internal {
+        if (block.timestamp == lastInterestUpdate) return;
+
+        uint256 timeElapsed = block.timestamp - lastInterestUpdate;
+        uint256 rate = getCurrentInterestRate();
+
+        // 이자 인덱스 업데이트
+        uint256 interestFactor = (rate * timeElapsed * 1e27) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+        borrowIndex += (borrowIndex * interestFactor) / 1e27;
+
+        lastInterestUpdate = block.timestamp;
+    }
+
+    /// @notice 사용자 이자 정산 (내부 함수)
+    function _settleUserInterest(address user) internal {
+        if (borrowedAmount[user] == 0) return;
+
+        uint256 timeElapsed = block.timestamp - borrowTimestamp[user];
+        if (timeElapsed == 0) return;
+
+        uint256 rate = getCurrentInterestRate();
+        uint256 interest = (borrowedAmount[user] * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+
+        accruedInterest[user] += interest;
+        totalAccruedInterest += interest;
+        borrowTimestamp[user] = block.timestamp;
+
+        emit InterestAccrued(user, interest, block.timestamp);
     }
 
     // ============ 관리 함수 ============
@@ -214,18 +329,31 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
             msg.sender
         );
 
-        // 4. 상태 업데이트
+        // 4. 기존 이자 정산 (추가 대출 시)
+        if (borrowedAmount[msg.sender] > 0) {
+            _settleUserInterest(msg.sender);
+        }
+
+        // 5. 상태 업데이트
         hasBorrow[msg.sender] = true;
         borrowedAmount[msg.sender] += amount;
         totalBorrowedUSDC += amount;
 
-        // 5. USDC 전송
+        // 6. 대출 시작 시간 기록 (첫 대출이면)
+        if (borrowTimestamp[msg.sender] == 0) {
+            borrowTimestamp[msg.sender] = block.timestamp;
+        }
+
+        // 7. 글로벌 이자 업데이트
+        _accrueInterest();
+
+        // 8. USDC 전송
         borrowToken.safeTransfer(msg.sender, amount);
 
         emit Borrowed(msg.sender, amount, debtCommitment, block.timestamp);
     }
 
-    /// @notice USDC 상환
+    /// @notice USDC 상환 (원금 + 이자)
     /// @param amount 상환할 양
     /// @param newDebtCommitment 업데이트된 부채 commitment (0이면 전액 상환)
     /// @param nullifier 기존 commitment 무효화용
@@ -237,24 +365,45 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
         if (amount == 0) revert ZeroAmount();
         if (!hasBorrow[msg.sender]) revert NoBorrow();
 
-        uint256 currentDebt = borrowedAmount[msg.sender];
-        uint256 repayAmount = amount > currentDebt ? currentDebt : amount;
+        // 1. 이자 정산
+        _settleUserInterest(msg.sender);
+        _accrueInterest();
 
-        // USDC 받기
+        // 2. 현재 총 부채 계산 (원금 + 이자)
+        uint256 principal = borrowedAmount[msg.sender];
+        uint256 interest = accruedInterest[msg.sender];
+        uint256 totalDebt = principal + interest;
+
+        uint256 repayAmount = amount > totalDebt ? totalDebt : amount;
+
+        // 3. USDC 받기
         borrowToken.safeTransferFrom(msg.sender, address(this), repayAmount);
 
-        // 상태 업데이트
-        borrowedAmount[msg.sender] -= repayAmount;
-        totalBorrowedUSDC -= repayAmount;
+        // 4. 이자 먼저 상환, 나머지는 원금 상환
+        uint256 interestPayment = repayAmount > interest ? interest : repayAmount;
+        uint256 principalPayment = repayAmount - interestPayment;
 
-        // commitment 업데이트
-        (bytes32 collateralComm, bytes32 debtComm) = commitmentRegistry.getUserCommitments(
+        // 5. 상태 업데이트
+        if (interestPayment > 0) {
+            accruedInterest[msg.sender] -= interestPayment;
+            totalAccruedInterest -= interestPayment;
+            emit InterestPaid(msg.sender, interestPayment, block.timestamp);
+        }
+
+        if (principalPayment > 0) {
+            borrowedAmount[msg.sender] -= principalPayment;
+            totalBorrowedUSDC -= principalPayment;
+        }
+
+        // 6. commitment 업데이트
+        (, bytes32 debtComm) = commitmentRegistry.getUserCommitments(
             msg.sender
         );
 
-        if (borrowedAmount[msg.sender] == 0) {
+        if (borrowedAmount[msg.sender] == 0 && accruedInterest[msg.sender] == 0) {
             // 전액 상환: commitment 삭제
             hasBorrow[msg.sender] = false;
+            borrowTimestamp[msg.sender] = 0;
             commitmentRegistry.nullifyCommitment(debtComm, nullifier);
         } else {
             // 부분 상환: commitment 업데이트
@@ -262,6 +411,26 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
         }
 
         emit Repaid(msg.sender, repayAmount, block.timestamp);
+    }
+
+    /// @notice 이자만 상환
+    function payInterest() external nonReentrant {
+        if (!hasBorrow[msg.sender]) revert NoBorrow();
+
+        // 이자 정산
+        _settleUserInterest(msg.sender);
+
+        uint256 interest = accruedInterest[msg.sender];
+        if (interest == 0) return;
+
+        // USDC 받기
+        borrowToken.safeTransferFrom(msg.sender, address(this), interest);
+
+        // 상태 업데이트
+        accruedInterest[msg.sender] = 0;
+        totalAccruedInterest -= interest;
+
+        emit InterestPaid(msg.sender, interest, block.timestamp);
     }
 
     /// @notice 담보 출금
@@ -366,7 +535,7 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
 
     // ============ 조회 함수 ============
 
-    /// @notice 사용자 포지션 조회
+    /// @notice 사용자 포지션 조회 (이자 포함)
     function getUserPosition(
         address user
     )
@@ -376,21 +545,62 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
             bool _hasDeposit,
             bool _hasBorrow,
             uint256 _borrowedAmount,
+            uint256 _accruedInterest,
+            uint256 _totalDebt,
             bytes32 collateralCommitment,
             bytes32 debtCommitment
         )
     {
         (collateralCommitment, debtCommitment) = commitmentRegistry.getUserCommitments(user);
-        return (hasDeposit[user], hasBorrow[user], borrowedAmount[user], collateralCommitment, debtCommitment);
+        (, uint256 interest, uint256 total) = getCurrentDebt(user);
+        return (
+            hasDeposit[user],
+            hasBorrow[user],
+            borrowedAmount[user],
+            interest,
+            total,
+            collateralCommitment,
+            debtCommitment
+        );
     }
 
-    /// @notice 풀 상태 조회
+    /// @notice 풀 상태 조회 (이자율 포함)
     function getPoolStatus()
         external
         view
-        returns (uint256 _totalCollateralETH, uint256 _totalBorrowedUSDC, uint256 availableLiquidity)
+        returns (
+            uint256 _totalCollateralETH,
+            uint256 _totalBorrowedUSDC,
+            uint256 _availableLiquidity,
+            uint256 _utilizationRate,
+            uint256 _currentInterestRate,
+            uint256 _totalAccruedInterest
+        )
     {
-        return (totalCollateralETH, totalBorrowedUSDC, borrowToken.balanceOf(address(this)));
+        return (
+            totalCollateralETH,
+            totalBorrowedUSDC,
+            borrowToken.balanceOf(address(this)),
+            getUtilizationRate(),
+            getCurrentInterestRate(),
+            totalAccruedInterest
+        );
+    }
+
+    /// @notice 예상 이자 계산 (대출 전 시뮬레이션용)
+    /// @param amount 대출 예정 금액
+    /// @param durationSeconds 대출 기간 (초)
+    function estimateInterest(uint256 amount, uint256 durationSeconds) external view returns (uint256) {
+        uint256 rate = getCurrentInterestRate();
+        return (amount * rate * durationSeconds) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+    }
+
+    /// @notice APY 계산 (연간 수익률, 복리 고려)
+    function getAPY() external view returns (uint256) {
+        uint256 apr = getCurrentInterestRate();
+        // 단순화: APY ≈ APR (실제로는 복리 계산 필요)
+        // APY = (1 + APR/n)^n - 1 (n = 365 for daily compounding)
+        return apr; // 10000 = 100%
     }
 
     /// @notice ETH 수신 가능
