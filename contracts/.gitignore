@@ -2,6 +2,11 @@
 cache/
 out/
 
+# Hardhat
+artifacts/
+cache_hardhat/
+typechain-types/
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
