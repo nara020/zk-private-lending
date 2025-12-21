@@ -11,7 +11,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Shield, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Shield, AlertTriangle, RefreshCw, TrendingUp, Percent } from 'lucide-react';
 import { api } from '../services/api';
 
 interface PositionCardProps {
@@ -31,10 +31,22 @@ export function PositionCard({ address }: PositionCardProps) {
     refetchInterval: 60000, // 1분마다 갱신
   });
 
+  const { data: poolStatus } = useQuery({
+    queryKey: ['poolStatus'],
+    queryFn: () => api.getPoolStatus(),
+    refetchInterval: 30000, // 30초마다 갱신
+  });
+
   // 로컬 스토리지에서 실제 담보 금액 가져오기 (사용자만 아는 정보)
   const localData = JSON.parse(localStorage.getItem(`position_${address}`) || '{}');
   const actualCollateral = localData.collateral || 0;
   const actualDebt = localData.debt || 0;
+  const borrowTimestamp = localData.borrowTimestamp || 0;
+
+  // 간단한 이자 계산 (5% APR 기준)
+  const daysSinceBorrow = borrowTimestamp ? (Date.now() / 1000 - borrowTimestamp) / 86400 : 0;
+  const estimatedInterest = actualDebt * 0.05 * (daysSinceBorrow / 365);
+  const totalDebt = actualDebt + estimatedInterest;
 
   // Health Factor 계산
   const collateralValueUSD = actualCollateral * (price?.ethPrice || 0);
@@ -109,10 +121,30 @@ export function PositionCard({ address }: PositionCardProps) {
         </div>
 
         <div className="flex justify-between">
-          <span className="text-gray-400">Borrowed</span>
+          <span className="text-gray-400">Principal</span>
           <div className="text-right">
             <p className="font-mono text-white">
               {actualDebt.toFixed(2)} USDC
+            </p>
+          </div>
+        </div>
+
+        {estimatedInterest > 0 && (
+          <div className="flex justify-between">
+            <span className="text-gray-400">Accrued Interest</span>
+            <div className="text-right">
+              <p className="font-mono text-yellow-400">
+                +{estimatedInterest.toFixed(2)} USDC
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between border-t border-purple-800/30 pt-2">
+          <span className="text-gray-400">Total Debt</span>
+          <div className="text-right">
+            <p className="font-mono font-bold text-white">
+              {totalDebt.toFixed(2)} USDC
             </p>
           </div>
         </div>
@@ -134,6 +166,25 @@ export function PositionCard({ address }: PositionCardProps) {
         <div className="flex justify-between">
           <span className="text-gray-400">Liq. Threshold</span>
           <p className="font-mono text-purple-400">80%</p>
+        </div>
+      </div>
+
+      {/* Interest Rate Info */}
+      <div className="mt-4 rounded-lg border border-purple-800/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-400">
+            <TrendingUp className="mr-1 h-4 w-4 text-green-400" />
+            Borrow APY
+          </div>
+          <p className="font-mono text-lg font-bold text-green-400">
+            {poolStatus?.apy ? (poolStatus.apy / 100).toFixed(2) : '5.00'}%
+          </p>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className="text-gray-500">Utilization</span>
+          <span className="text-gray-400">
+            {poolStatus?.utilizationRate?.toFixed(1) || '0'}%
+          </span>
         </div>
       </div>
 

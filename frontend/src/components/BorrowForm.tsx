@@ -18,7 +18,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers';
-import { ArrowDown, Loader2, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowDown, Loader2, Shield, AlertTriangle, TrendingUp, Percent } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../services/api';
@@ -34,6 +34,13 @@ export function BorrowForm() {
     queryKey: ['ethPrice'],
     queryFn: () => api.getEthPrice(),
     refetchInterval: 60000,
+  });
+
+  // 풀 상태 조회 (이자율 정보)
+  const { data: poolStatus } = useQuery({
+    queryKey: ['poolStatus'],
+    queryFn: () => api.getPoolStatus(),
+    refetchInterval: 30000,
   });
 
   // 로컬 스토리지에서 담보 정보 가져오기
@@ -187,6 +194,49 @@ export function BorrowForm() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Interest Rate Info */}
+      <div className="rounded-xl border border-purple-800/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-400">
+            <TrendingUp className="mr-2 h-4 w-4 text-green-400" />
+            Current Borrow APY
+          </div>
+          <p className="font-mono text-lg font-bold text-green-400">
+            {poolStatus?.apy ? (poolStatus.apy / 100).toFixed(2) : '5.00'}%
+          </p>
+        </div>
+        <div className="mt-3 flex items-center justify-between text-xs">
+          <span className="text-gray-500">Pool Utilization</span>
+          <span className="text-gray-400">
+            {poolStatus?.utilizationRate?.toFixed(1) || '0'}%
+          </span>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs">
+          <span className="text-gray-500">Available Liquidity</span>
+          <span className="text-gray-400">
+            ${poolStatus?.availableLiquidity
+              ? (parseFloat(poolStatus.availableLiquidity) / 1e6).toLocaleString()
+              : '0'} USDC
+          </span>
+        </div>
+        {amount && parseFloat(amount) > 0 && (
+          <div className="mt-3 border-t border-purple-800/30 pt-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">Estimated Daily Interest</span>
+              <span className="font-mono text-yellow-400">
+                ~${((parseFloat(amount) * (poolStatus?.apy ? poolStatus.apy / 100 : 5) / 100) / 365).toFixed(4)}
+              </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-sm">
+              <span className="text-gray-400">Estimated Monthly Interest</span>
+              <span className="font-mono text-yellow-400">
+                ~${((parseFloat(amount) * (poolStatus?.apy ? poolStatus.apy / 100 : 5) / 100) / 12).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Arrow */}

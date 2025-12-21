@@ -39,6 +39,22 @@ interface PositionResponse {
   isActive: boolean;
 }
 
+interface PoolStatusResponse {
+  totalCollateral: string;
+  totalBorrowed: string;
+  availableLiquidity: string;
+  utilizationRate: number;
+  interestRate: number;
+  totalAccruedInterest: string;
+  apy: number;
+}
+
+interface DebtInfoResponse {
+  principal: string;
+  interest: string;
+  total: string;
+}
+
 interface LTVProofRequest {
   collateralAmount: string;
   collateralSalt: string;
@@ -165,6 +181,56 @@ export const api = {
     return fetchAPI<{ healthFactor: number; isLiquidatable: boolean }>(
       `/api/health/${address}`
     );
+  },
+
+  /**
+   * 건강도 조회 (alias)
+   */
+  getHealth: async (
+    address: string
+  ): Promise<{ healthFactor: number; isLiquidatable: boolean }> => {
+    return fetchAPI<{ healthFactor: number; isLiquidatable: boolean }>(
+      `/api/health/${address}`
+    );
+  },
+
+  /**
+   * 풀 상태 조회 (이자율, 이용률 등)
+   */
+  getPoolStatus: async (): Promise<PoolStatusResponse> => {
+    return fetchAPI<PoolStatusResponse>('/api/pool/status');
+  },
+
+  /**
+   * 현재 APY 조회
+   */
+  getAPY: async (): Promise<{ apy: number }> => {
+    return fetchAPI<{ apy: number }>('/api/pool/apy');
+  },
+
+  /**
+   * 사용자 부채 정보 조회 (원금 + 이자)
+   */
+  getDebtInfo: async (address: string): Promise<DebtInfoResponse> => {
+    return fetchAPI<DebtInfoResponse>(`/api/debt/${address}`);
+  },
+
+  /**
+   * 청산 증명 요청 (내부용 alias)
+   */
+  proveLiquidation: async (
+    params: LiquidationProofRequest & { ethPrice: number; liquidationThreshold: number }
+  ): Promise<ProofResponse> => {
+    return fetchAPI<ProofResponse>('/api/prove/liquidation', {
+      method: 'POST',
+      body: JSON.stringify({
+        collateralAmount: params.collateralAmount,
+        collateralSalt: params.collateralSalt,
+        debtAmount: params.debtAmount,
+        ethPrice: params.ethPrice.toString(),
+        liquidationThreshold: params.liquidationThreshold.toString(),
+      }),
+    });
   },
 };
 

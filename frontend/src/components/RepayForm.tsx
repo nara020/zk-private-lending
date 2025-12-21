@@ -17,12 +17,13 @@
  */
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { parseUnits } from 'ethers';
-import { ArrowDown, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowDown, Loader2, CheckCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../hooks/useWallet';
 import { contracts } from '../services/contracts';
+import { api } from '../services/api';
 
 export function RepayForm() {
   const [amount, setAmount] = useState('');
@@ -31,8 +32,14 @@ export function RepayForm() {
 
   // 로컬 스토리지에서 부채 정보 가져오기
   const localData = JSON.parse(localStorage.getItem(`position_${address}`) || '{}');
-  const currentDebt = localData.debt || 0;
+  const principal = localData.debt || 0;
   const collateral = localData.collateral || 0;
+  const borrowTimestamp = localData.borrowTimestamp || 0;
+
+  // 간단한 이자 계산 (5% APR 기준)
+  const daysSinceBorrow = borrowTimestamp ? (Date.now() / 1000 - borrowTimestamp) / 86400 : 0;
+  const accruedInterest = principal * 0.05 * (daysSinceBorrow / 365);
+  const currentDebt = principal + accruedInterest;
 
   const repayMutation = useMutation({
     mutationFn: async () => {
@@ -103,8 +110,21 @@ export function RepayForm() {
       {/* Current Position */}
       <div className="rounded-xl border border-purple-800/30 bg-purple-900/10 p-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-400">Current Debt</span>
-          <span className="font-mono text-white">${currentDebt.toFixed(2)} USDC</span>
+          <span className="text-sm text-gray-400">Principal</span>
+          <span className="font-mono text-white">${principal.toFixed(2)} USDC</span>
+        </div>
+        {accruedInterest > 0 && (
+          <div className="mt-2 flex items-center justify-between">
+            <span className="flex items-center text-sm text-gray-400">
+              <TrendingUp className="mr-1 h-3 w-3 text-yellow-400" />
+              Accrued Interest
+            </span>
+            <span className="font-mono text-yellow-400">+${accruedInterest.toFixed(2)}</span>
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-between border-t border-purple-800/30 pt-2">
+          <span className="text-sm font-medium text-gray-300">Total Debt</span>
+          <span className="font-mono font-bold text-white">${currentDebt.toFixed(2)} USDC</span>
         </div>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-sm text-gray-400">Collateral</span>
