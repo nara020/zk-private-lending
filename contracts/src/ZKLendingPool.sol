@@ -180,74 +180,96 @@ contract ZKLendingPool is ReentrancyGuard, Ownable {
     // ============ 이자 계산 함수 ============
 
     /// @notice 현재 이용률 계산 (0-100%)
+    /// @dev Gas optimized: cache storage read
     function getUtilizationRate() public view returns (uint256) {
-        uint256 totalLiquidity = borrowToken.balanceOf(address(this)) + totalBorrowedUSDC;
+        uint256 borrowed = totalBorrowedUSDC; // Gas: cache storage
+        uint256 totalLiquidity = borrowToken.balanceOf(address(this)) + borrowed;
         if (totalLiquidity == 0) return 0;
-        return (totalBorrowedUSDC * 100) / totalLiquidity;
+        unchecked {
+            return (borrowed * 100) / totalLiquidity;
+        }
     }
 
     /// @notice 현재 이자율 계산 (연간, 10000 = 100%)
     /// @dev 이용률에 따라 동적으로 변화하는 이자율 모델
+    /// @dev Gas optimized: unchecked math for known-safe operations
     function getCurrentInterestRate() public view returns (uint256) {
         uint256 utilization = getUtilizationRate();
 
         if (utilization <= OPTIMAL_UTILIZATION) {
             // 이용률이 최적 이하: 선형 증가
             // rate = BASE + (utilization / optimal) * VARIABLE
-            return BASE_INTEREST_RATE + (utilization * VARIABLE_INTEREST_RATE) / OPTIMAL_UTILIZATION;
+            unchecked {
+                return BASE_INTEREST_RATE + (utilization * VARIABLE_INTEREST_RATE) / OPTIMAL_UTILIZATION;
+            }
         } else {
             // 이용률이 최적 초과: 급격히 증가 (유동성 부족 방지)
             // rate = BASE + VARIABLE + (excess_utilization) * VARIABLE * 2
-            uint256 excessUtilization = utilization - OPTIMAL_UTILIZATION;
-            uint256 excessRate = (excessUtilization * VARIABLE_INTEREST_RATE * 2) / (100 - OPTIMAL_UTILIZATION);
-            return BASE_INTEREST_RATE + VARIABLE_INTEREST_RATE + excessRate;
+            unchecked {
+                uint256 excessUtilization = utilization - OPTIMAL_UTILIZATION;
+                uint256 excessRate = (excessUtilization * VARIABLE_INTEREST_RATE * 2) / (100 - OPTIMAL_UTILIZATION);
+                return BASE_INTEREST_RATE + VARIABLE_INTEREST_RATE + excessRate;
+            }
         }
     }
 
     /// @notice 사용자의 현재 부채 (원금 + 이자) 계산
+    /// @dev Gas optimized: cache storage reads, unchecked math
     function getCurrentDebt(address user) public view returns (uint256 principal, uint256 interest, uint256 total) {
         principal = borrowedAmount[user];
         if (principal == 0) return (0, 0, 0);
 
         // 시간 경과 계산
-        uint256 timeElapsed = block.timestamp - borrowTimestamp[user];
+        uint256 userTimestamp = borrowTimestamp[user]; // Gas: cache storage
+        uint256 timeElapsed = block.timestamp - userTimestamp;
         if (timeElapsed == 0) return (principal, 0, principal);
 
         // 단순 이자 계산: interest = principal * rate * time / (RATE_BASE * SECONDS_PER_YEAR)
         uint256 rate = getCurrentInterestRate();
-        interest = (principal * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
-        interest += accruedInterest[user]; // 기존 누적 이자 추가
-
-        total = principal + interest;
+        unchecked {
+            interest = (principal * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+            interest += accruedInterest[user]; // 기존 누적 이자 추가
+            total = principal + interest;
+        }
         return (principal, interest, total);
     }
 
     /// @notice 글로벌 이자 업데이트 (내부 함수)
+    /// @dev Gas optimized: cache storage reads
     function _accrueInterest() internal {
-        if (block.timestamp == lastInterestUpdate) return;
+        uint256 lastUpdate = lastInterestUpdate; // Gas: cache storage
+        if (block.timestamp == lastUpdate) return;
 
-        uint256 timeElapsed = block.timestamp - lastInterestUpdate;
+        uint256 timeElapsed = block.timestamp - lastUpdate;
         uint256 rate = getCurrentInterestRate();
+        uint256 currentIndex = borrowIndex; // Gas: cache storage
 
         // 이자 인덱스 업데이트
-        uint256 interestFactor = (rate * timeElapsed * 1e27) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
-        borrowIndex += (borrowIndex * interestFactor) / 1e27;
+        unchecked {
+            uint256 interestFactor = (rate * timeElapsed * 1e27) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+            borrowIndex = currentIndex + (currentIndex * interestFactor) / 1e27;
+        }
 
         lastInterestUpdate = block.timestamp;
     }
 
     /// @notice 사용자 이자 정산 (내부 함수)
+    /// @dev Gas optimized: cache storage reads, unchecked math
     function _settleUserInterest(address user) internal {
-        if (borrowedAmount[user] == 0) return;
+        uint256 principal = borrowedAmount[user]; // Gas: cache storage
+        if (principal == 0) return;
 
-        uint256 timeElapsed = block.timestamp - borrowTimestamp[user];
+        uint256 userTimestamp = borrowTimestamp[user]; // Gas: cache storage
+        uint256 timeElapsed = block.timestamp - userTimestamp;
         if (timeElapsed == 0) return;
 
         uint256 rate = getCurrentInterestRate();
-        uint256 interest = (borrowedAmount[user] * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
-
-        accruedInterest[user] += interest;
-        totalAccruedInterest += interest;
+        uint256 interest;
+        unchecked {
+            interest = (principal * rate * timeElapsed) / (INTEREST_RATE_BASE * SECONDS_PER_YEAR);
+            accruedInterest[user] += interest;
+            totalAccruedInterest += interest;
+        }
         borrowTimestamp[user] = block.timestamp;
 
         emit InterestAccrued(user, interest, block.timestamp);
