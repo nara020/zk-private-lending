@@ -4,18 +4,21 @@
 //!
 //! ## Usage in JavaScript
 //! ```javascript
-//! import init, { generate_collateral_proof, verify_proof } from 'zk-private-lending-circuits';
+//! import init, { compute_commitment, get_circuit_info } from 'zk-private-lending-circuits';
 //!
 //! await init();
-//! const proof = generate_collateral_proof(amount, salt, commitment);
-//! const isValid = verify_proof(proof, publicInputs);
+//! const commitment = compute_commitment(amount, salt);
+//! console.log(get_circuit_info());
 //! ```
+//!
+//! Note: Full proof generation requires proving keys which are not included in WASM.
+//! For production, use the API server for proof generation.
 
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "wasm")]
-use crate::circuits::{CollateralCircuit, LTVCircuit, LiquidationCircuit};
+use crate::{CollateralCircuit, LTVCircuit, LiquidationCircuit};
 
 /// Initialize WASM module with panic hook for better error messages
 #[cfg(feature = "wasm")]
@@ -24,148 +27,126 @@ pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
-/// Generate a collateral proof
+/// Validate collateral circuit inputs
 ///
 /// # Arguments
 /// * `amount` - Collateral amount as string (to handle large numbers)
-/// * `salt` - Random salt as hex string
-/// * `commitment` - Expected commitment as hex string
+/// * `salt` - Random salt as string
+/// * `threshold` - Minimum required collateral as string
 ///
 /// # Returns
-/// Proof bytes as Uint8Array
+/// True if inputs are valid and would produce a valid proof
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
-pub fn generate_collateral_proof(
+pub fn validate_collateral_inputs(
     amount: &str,
     salt: &str,
-    commitment: &str,
-) -> Result<Vec<u8>, JsError> {
-    use pasta_curves::Fp;
-    use std::str::FromStr;
-
-    let amount_value = Fp::from_str(amount)
+    threshold: &str,
+) -> Result<bool, JsError> {
+    let amount: u64 = amount.parse()
         .map_err(|_| JsError::new("Invalid amount"))?;
-    let salt_value = Fp::from_str(salt)
+    let _salt: u64 = salt.parse()
         .map_err(|_| JsError::new("Invalid salt"))?;
-    let commitment_value = Fp::from_str(commitment)
-        .map_err(|_| JsError::new("Invalid commitment"))?;
+    let threshold: u64 = threshold.parse()
+        .map_err(|_| JsError::new("Invalid threshold"))?;
 
-    // Create circuit and generate proof
-    let circuit = CollateralCircuit::new(amount_value, salt_value, commitment_value);
-
-    // Note: Actual proof generation requires setup params
-    // This is a placeholder - in production, load params from file
-    let proof_bytes = circuit.to_proof_bytes()
-        .map_err(|e| JsError::new(&format!("Proof generation failed: {:?}", e)))?;
-
-    Ok(proof_bytes)
+    // Validate that collateral >= threshold
+    Ok(amount >= threshold)
 }
 
-/// Generate an LTV proof
+/// Validate LTV circuit inputs
 ///
 /// # Arguments
 /// * `collateral_amount` - Collateral amount as string
-/// * `collateral_salt` - Collateral salt as hex string
 /// * `borrow_amount` - Borrow amount as string
-/// * `eth_price` - ETH price in USD (8 decimals) as string
 /// * `max_ltv` - Maximum LTV ratio (e.g., "75" for 75%)
 ///
 /// # Returns
-/// Proof bytes as Uint8Array
+/// True if LTV is within bounds
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
-pub fn generate_ltv_proof(
+pub fn validate_ltv_inputs(
     collateral_amount: &str,
-    collateral_salt: &str,
     borrow_amount: &str,
-    eth_price: &str,
     max_ltv: &str,
-) -> Result<Vec<u8>, JsError> {
-    use pasta_curves::Fp;
-    use std::str::FromStr;
-
-    let collateral = Fp::from_str(collateral_amount)
+) -> Result<bool, JsError> {
+    let collateral: u64 = collateral_amount.parse()
         .map_err(|_| JsError::new("Invalid collateral amount"))?;
-    let salt = Fp::from_str(collateral_salt)
-        .map_err(|_| JsError::new("Invalid salt"))?;
-    let borrow = Fp::from_str(borrow_amount)
+    let borrow: u64 = borrow_amount.parse()
         .map_err(|_| JsError::new("Invalid borrow amount"))?;
-    let price = Fp::from_str(eth_price)
-        .map_err(|_| JsError::new("Invalid ETH price"))?;
-    let ltv = Fp::from_str(max_ltv)
+    let max_ltv: u64 = max_ltv.parse()
         .map_err(|_| JsError::new("Invalid max LTV"))?;
 
-    let circuit = LTVCircuit::new(collateral, salt, borrow, price, ltv);
+    // Check: borrow * 100 <= collateral * max_ltv
+    // This avoids division and works with integers
+    let borrow_scaled = borrow * 100;
+    let collateral_scaled = collateral * max_ltv;
 
-    let proof_bytes = circuit.to_proof_bytes()
-        .map_err(|e| JsError::new(&format!("Proof generation failed: {:?}", e)))?;
-
-    Ok(proof_bytes)
+    Ok(borrow_scaled <= collateral_scaled)
 }
 
-/// Generate a liquidation proof
+/// Check if a position is liquidatable
 ///
 /// # Arguments
 /// * `collateral_amount` - Collateral amount as string
-/// * `collateral_salt` - Collateral salt as hex string
 /// * `debt_amount` - Total debt amount as string
-/// * `eth_price` - ETH price in USD (8 decimals) as string
-/// * `liquidation_threshold` - Liquidation threshold (e.g., "80" for 80%)
+/// * `eth_price` - ETH price (scaled) as string
+/// * `liquidation_threshold` - Liquidation threshold (e.g., "85" for 85%)
 ///
 /// # Returns
-/// Proof bytes as Uint8Array
+/// True if position is liquidatable (health factor < 1.0)
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
-pub fn generate_liquidation_proof(
+pub fn is_liquidatable(
     collateral_amount: &str,
-    collateral_salt: &str,
     debt_amount: &str,
     eth_price: &str,
     liquidation_threshold: &str,
-) -> Result<Vec<u8>, JsError> {
-    use pasta_curves::Fp;
-    use std::str::FromStr;
-
-    let collateral = Fp::from_str(collateral_amount)
+) -> Result<bool, JsError> {
+    let collateral: u64 = collateral_amount.parse()
         .map_err(|_| JsError::new("Invalid collateral amount"))?;
-    let salt = Fp::from_str(collateral_salt)
-        .map_err(|_| JsError::new("Invalid salt"))?;
-    let debt = Fp::from_str(debt_amount)
+    let debt: u64 = debt_amount.parse()
         .map_err(|_| JsError::new("Invalid debt amount"))?;
-    let price = Fp::from_str(eth_price)
+    let price: u64 = eth_price.parse()
         .map_err(|_| JsError::new("Invalid ETH price"))?;
-    let threshold = Fp::from_str(liquidation_threshold)
+    let threshold: u64 = liquidation_threshold.parse()
         .map_err(|_| JsError::new("Invalid liquidation threshold"))?;
 
-    let circuit = LiquidationCircuit::new(collateral, salt, debt, price, threshold);
-
-    let proof_bytes = circuit.to_proof_bytes()
-        .map_err(|e| JsError::new(&format!("Proof generation failed: {:?}", e)))?;
-
-    Ok(proof_bytes)
+    // Use the circuit's helper function
+    Ok(LiquidationCircuit::<pasta_curves::Fp>::is_liquidatable(
+        collateral, debt, price, threshold
+    ))
 }
 
-/// Compute Poseidon hash commitment
+/// Compute commitment hash
+///
+/// Uses the same commitment formula as the circuits:
+/// commitment = amount * salt + amount
+///
+/// Note: This is a simplified commitment for demonstration.
+/// Production would use Poseidon hash.
 ///
 /// # Arguments
 /// * `amount` - Amount as string
-/// * `salt` - Random salt as hex string
+/// * `salt` - Random salt as string
 ///
 /// # Returns
-/// Commitment hash as hex string
+/// Commitment value as string
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
 pub fn compute_commitment(amount: &str, salt: &str) -> Result<String, JsError> {
     use pasta_curves::Fp;
-    use std::str::FromStr;
-    use crate::gadgets::poseidon::PoseidonHash;
 
-    let amount_value = Fp::from_str(amount)
+    let amount_value: u64 = amount.parse()
         .map_err(|_| JsError::new("Invalid amount"))?;
-    let salt_value = Fp::from_str(salt)
+    let salt_value: u64 = salt.parse()
         .map_err(|_| JsError::new("Invalid salt"))?;
 
-    let commitment = PoseidonHash::hash(&[amount_value, salt_value]);
+    let amount_fp = Fp::from(amount_value);
+    let salt_fp = Fp::from(salt_value);
+
+    // Use the same formula as CollateralCircuit::compute_commitment
+    let commitment = CollateralCircuit::compute_commitment(amount_fp, salt_fp);
 
     Ok(format!("{:?}", commitment))
 }
