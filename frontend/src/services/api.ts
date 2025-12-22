@@ -219,7 +219,13 @@ export const api = {
    * 청산 증명 요청 (내부용 alias)
    */
   proveLiquidation: async (
-    params: LiquidationProofRequest & { ethPrice: number; liquidationThreshold: number }
+    params: {
+      collateralAmount: string;
+      collateralSalt: string;
+      debtAmount: string;
+      ethPrice: number;
+      liquidationThreshold: number;
+    }
   ): Promise<ProofResponse> => {
     return fetchAPI<ProofResponse>('/api/prove/liquidation', {
       method: 'POST',

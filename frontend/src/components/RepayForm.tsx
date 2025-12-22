@@ -17,13 +17,12 @@
  */
 
 import { useState } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers';
 import { ArrowDown, Loader2, CheckCircle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../hooks/useWallet';
 import { contracts } from '../services/contracts';
-import { api } from '../services/api';
 
 export function RepayForm() {
   const [amount, setAmount] = useState('');

@@ -11,7 +11,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { Shield, AlertTriangle, RefreshCw, TrendingUp, Percent } from 'lucide-react';
+import { Shield, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import { api } from '../services/api';
 
 interface PositionCardProps {

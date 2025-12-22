@@ -18,7 +18,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseUnits } from 'ethers';
-import { ArrowDown, Loader2, Shield, AlertTriangle, TrendingUp, Percent } from 'lucide-react';
+import { ArrowDown, Loader2, Shield, AlertTriangle, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWallet } from '../hooks/useWallet';
 import { api } from '../services/api';
