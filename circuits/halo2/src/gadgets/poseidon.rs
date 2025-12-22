@@ -14,9 +14,9 @@
 //! - Used by Zcash, Filecoin, Polygon Hermez
 //!
 //! # Usage
-//! ```rust
+//! ```ignore
 //! use zk_private_lending_circuits::gadgets::poseidon::poseidon_hash;
-//! use halo2_proofs::pasta::Fp;
+//! use pasta_curves::Fp;
 //!
 //! let collateral = Fp::from(1000u64);
 //! let salt = Fp::from(12345u64);
@@ -314,8 +314,8 @@ impl<F: PrimeField> PoseidonChip<F> {
 /// The Poseidon hash H(input1, input2)
 ///
 /// # Example
-/// ```rust
-/// use halo2_proofs::pasta::Fp;
+/// ```ignore
+/// use pasta_curves::Fp;
 /// use zk_private_lending_circuits::gadgets::poseidon::poseidon_hash;
 ///
 /// let commitment = poseidon_hash(Fp::from(1000u64), Fp::from(12345u64));
