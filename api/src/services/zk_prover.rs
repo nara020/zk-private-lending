@@ -42,7 +42,7 @@ use tokio::sync::RwLock;
 
 use halo2_proofs::{
     plonk::{create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, VerifyingKey},
-    poly::commitment::Params,
+    poly::ipa::commitment::Params,
     transcript::{Blake2bRead, Blake2bWrite, Challenge255},
 };
 use pasta_curves::{Fp, EqAffine};

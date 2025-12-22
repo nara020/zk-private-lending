@@ -167,7 +167,7 @@ jobs:
           cd contracts
           mkdir -p lib
           git clone --depth 1 https://github.com/foundry-rs/forge-std.git lib/forge-std
-          git clone --depth 1 --branch v4.9.0 https://github.com/OpenZeppelin/openzeppelin-contracts.git lib/openzeppelin-contracts
+          git clone --depth 1 --branch v4.9.6 https://github.com/OpenZeppelin/openzeppelin-contracts.git lib/openzeppelin-contracts
 
       - name: Check formatting
         run: |
