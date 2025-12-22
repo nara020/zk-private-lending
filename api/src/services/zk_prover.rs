@@ -41,11 +41,11 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use halo2_proofs::{
-    pasta::{Fp, EqAffine},
     plonk::{create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, VerifyingKey},
     poly::commitment::Params,
     transcript::{Blake2bRead, Blake2bWrite, Challenge255},
 };
+use pasta_curves::{Fp, EqAffine};
 use rand::rngs::OsRng;
 
 use zk_private_lending_circuits::{CollateralCircuit, LTVCircuit, LiquidationCircuit};
