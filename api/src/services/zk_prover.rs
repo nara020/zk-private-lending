@@ -42,8 +42,16 @@ use tokio::sync::RwLock;
 
 use halo2_proofs::{
     plonk::{create_proof, keygen_pk, keygen_vk, verify_proof, ProvingKey, VerifyingKey},
-    poly::ipa::commitment::Params,
-    transcript::{Blake2bRead, Blake2bWrite, Challenge255},
+    poly::{
+        commitment::ParamsProver,
+        ipa::{
+            commitment::{IPACommitmentScheme, ParamsIPA},
+            multiopen::ProverIPA,
+            strategy::SingleStrategy,
+        },
+        VerificationStrategy,
+    },
+    transcript::{Blake2bRead, Blake2bWrite, Challenge255, TranscriptReadBuffer, TranscriptWriterBuffer},
 };
 use pasta_curves::{Fp, EqAffine};
 use ff::PrimeField;
@@ -69,7 +77,7 @@ pub struct ProofResult {
 /// - 동일한 회로에 대해 재사용 가능
 /// - 메모리 사용량: 각 회로당 ~50-100MB
 struct ProvingContext {
-    params: Params<EqAffine>,
+    params: ParamsIPA<EqAffine>,
     collateral_pk: Option<ProvingKey<EqAffine>>,
     collateral_vk: Option<VerifyingKey<EqAffine>>,
     ltv_pk: Option<ProvingKey<EqAffine>>,
@@ -129,7 +137,7 @@ impl ZKProver {
 
         // Generate parameters (SRS - Structured Reference String)
         // In production, this would be loaded from a file
-        let params = Params::<EqAffine>::new(k);
+        let params = ParamsIPA::<EqAffine>::new(k);
 
         tracing::info!("SRS parameters generated");
 
@@ -327,9 +335,16 @@ impl ZKProver {
             let pk = context.collateral_pk.as_ref()
                 .ok_or_else(|| anyhow!("Proving key not initialized"))?;
 
-            let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
+            let mut transcript = Blake2bWrite::<Vec<u8>, EqAffine, Challenge255<EqAffine>>::init(vec![]);
 
-            create_proof(
+            create_proof::<
+                IPACommitmentScheme<EqAffine>,
+                ProverIPA<'_, EqAffine>,
+                _,
+                _,
+                _,
+                _,
+            >(
                 &context.params,
                 pk,
                 &[circuit],
@@ -403,9 +418,16 @@ impl ZKProver {
             let pk = context.ltv_pk.as_ref()
                 .ok_or_else(|| anyhow!("LTV proving key not initialized"))?;
 
-            let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
+            let mut transcript = Blake2bWrite::<Vec<u8>, EqAffine, Challenge255<EqAffine>>::init(vec![]);
 
-            create_proof(
+            create_proof::<
+                IPACommitmentScheme<EqAffine>,
+                ProverIPA<'_, EqAffine>,
+                _,
+                _,
+                _,
+                _,
+            >(
                 &context.params,
                 pk,
                 &[circuit],
@@ -479,9 +501,16 @@ impl ZKProver {
             let pk = context.liquidation_pk.as_ref()
                 .ok_or_else(|| anyhow!("Liquidation proving key not initialized"))?;
 
-            let mut transcript = Blake2bWrite::<_, _, Challenge255<_>>::init(vec![]);
+            let mut transcript = Blake2bWrite::<Vec<u8>, EqAffine, Challenge255<EqAffine>>::init(vec![]);
 
-            create_proof(
+            create_proof::<
+                IPACommitmentScheme<EqAffine>,
+                ProverIPA<'_, EqAffine>,
+                _,
+                _,
+                _,
+                _,
+            >(
                 &context.params,
                 pk,
                 &[circuit],
@@ -586,10 +615,13 @@ impl ZKProver {
 
         let mut transcript = Blake2bRead::<_, _, Challenge255<_>>::init(proof_bytes);
 
-        let result = verify_proof(
+        let strategy = SingleStrategy::new(&context.params);
+        let instances: &[&[Fp]] = &[public_inputs];
+        let result = verify_proof::<_, _, _, _, _>(
             &context.params,
             vk,
-            &[vec![public_inputs.to_vec()]],
+            strategy,
+            &[instances],
             &mut transcript,
         );
 

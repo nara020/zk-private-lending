@@ -27,7 +27,7 @@
 use axum::{extract::State, Json};
 use serde::Serialize;
 
-use crate::{AppState, error::ApiError};
+use crate::{AppState, error::ApiError, services::PriceData};
 
 /// 가격 응답
 #[derive(Debug, Serialize)]
@@ -52,8 +52,8 @@ pub struct PriceResponse {
 pub async fn get_eth_price(
     State(state): State<AppState>,
 ) -> Result<Json<PriceResponse>, ApiError> {
-    let price_data = state.price_oracle.get_eth_price().await
-        .map_err(|e| ApiError::ServiceUnavailable("Price Oracle".to_string()))?;
+    let price_data: PriceData = state.price_oracle.get_eth_price().await
+        .map_err(|_: anyhow::Error| ApiError::ServiceUnavailable("Price Oracle".to_string()))?;
 
     let price_usd = price_data.price;
     let price_formatted = format!("${:.2}", price_usd as f64 / 100_000_000.0);

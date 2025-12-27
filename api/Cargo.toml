@@ -47,6 +47,7 @@ anyhow = "1.0"             # 에러 전파
 tracing = "0.1"            # 구조화된 로깅
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"           # 환경변수 로드
+async-trait = "0.1"        # 비동기 트레이트
 
 # ============ HTTP Client (Oracle 연동) ============
 reqwest = { version = "0.11", features = ["json"] }

@@ -55,32 +55,11 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod config;
-mod error;
-mod routes;
-mod services;
-mod db;
-mod types;
-
-use config::Config;
-use db::Database;
-use services::{ZKProver, PriceOracle};
-
-/// 애플리케이션 전역 상태
-///
-/// # Design Decision
-///
-/// Arc를 사용하는 이유:
-/// - Axum 핸들러는 각 요청마다 클론됨
-/// - Arc는 참조 카운팅으로 저렴한 클론 제공
-/// - 내부 데이터는 불변이거나 Mutex로 보호
-#[derive(Clone)]
-pub struct AppState {
-    pub db: Arc<Database>,
-    pub zk_prover: Arc<ZKProver>,
-    pub price_oracle: Arc<PriceOracle>,
-    pub config: Arc<Config>,
-}
+// 라이브러리에서 가져오기
+use zk_lending_api::{
+    AppState, Config, Database, ZKProver, PriceOracle,
+    routes, config, services,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

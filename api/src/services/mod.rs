@@ -5,5 +5,5 @@
 mod zk_prover;
 mod price_oracle;
 
-pub use zk_prover::ZKProver;
-pub use price_oracle::PriceOracle;
+pub use zk_prover::{ZKProver, ProofResult};
+pub use price_oracle::{PriceOracle, PriceData};

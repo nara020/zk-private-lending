@@ -29,7 +29,7 @@
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppState, error::ApiError};
+use crate::{AppState, error::ApiError, services::ProofResult};
 
 // ============ Request/Response Types ============
 
@@ -135,10 +135,10 @@ pub async fn generate_collateral_proof(
     }
 
     // Proof 생성
-    let proof_result = state.zk_prover
+    let proof_result: ProofResult = state.zk_prover
         .generate_collateral_proof(collateral, threshold, salt)
         .await
-        .map_err(|e| ApiError::ProofGenerationFailed(e.to_string()))?;
+        .map_err(|e: anyhow::Error| ApiError::ProofGenerationFailed(e.to_string()))?;
 
     let generation_time = start.elapsed().as_millis() as u64;
     tracing::info!("Collateral proof generated in {}ms", generation_time);
@@ -180,10 +180,10 @@ pub async fn generate_ltv_proof(
         ));
     }
 
-    let proof_result = state.zk_prover
+    let proof_result: ProofResult = state.zk_prover
         .generate_ltv_proof(collateral, debt, max_ltv, collateral_salt, debt_salt)
         .await
-        .map_err(|e| ApiError::ProofGenerationFailed(e.to_string()))?;
+        .map_err(|e: anyhow::Error| ApiError::ProofGenerationFailed(e.to_string()))?;
 
     let generation_time = start.elapsed().as_millis() as u64;
     tracing::info!("LTV proof generated in {}ms", generation_time);
@@ -223,10 +223,10 @@ pub async fn generate_liquidation_proof(
         ));
     }
 
-    let proof_result = state.zk_prover
+    let proof_result: ProofResult = state.zk_prover
         .generate_liquidation_proof(collateral, debt, price, liquidation_threshold, salt)
         .await
-        .map_err(|e| ApiError::ProofGenerationFailed(e.to_string()))?;
+        .map_err(|e: anyhow::Error| ApiError::ProofGenerationFailed(e.to_string()))?;
 
     let generation_time = start.elapsed().as_millis() as u64;
     tracing::info!("Liquidation proof generated in {}ms", generation_time);

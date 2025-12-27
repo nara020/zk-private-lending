@@ -35,8 +35,8 @@ WORKDIR /app
 COPY api/ ./api/
 COPY circuits/halo2/ ./circuits/halo2/
 
-# Touch main.rs to trigger rebuild
-RUN touch api/src/main.rs
+# Touch source files to trigger rebuild
+RUN touch api/src/main.rs circuits/halo2/src/lib.rs
 
 # Build the actual application
 WORKDIR /app/api

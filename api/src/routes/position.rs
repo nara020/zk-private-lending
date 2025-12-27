@@ -30,7 +30,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{AppState, error::ApiError};
+use crate::{AppState, error::ApiError, db::PositionEvent as DbPositionEvent};
 
 // ============ Request/Response Types ============
 
@@ -123,7 +123,7 @@ pub async fn get_position(
             address: address.clone(),
             has_deposit: pos.has_deposit,
             has_borrow: pos.has_borrow,
-            borrowed_amount: pos.borrowed_amount.map(|a| a.to_string()),
+            borrowed_amount: pos.borrowed_amount.map(|a: i64| a.to_string()),
             collateral_commitment: pos.collateral_commitment,
             debt_commitment: pos.debt_commitment,
             last_updated: pos.updated_at.to_rfc3339(),
@@ -159,7 +159,7 @@ pub async fn get_position_history(
     let limit = query.limit.unwrap_or(20).min(100); // 최대 100개
 
     // DB에서 이벤트 조회
-    let (events, total) = state.db.get_position_history(&address, page, limit).await?;
+    let (events, total): (Vec<DbPositionEvent>, i64) = state.db.get_position_history(&address, page, limit).await?;
 
     let has_next = ((page + 1) * limit) < total as u32;
 
@@ -167,7 +167,7 @@ pub async fn get_position_history(
         address,
         events: events.into_iter().map(|e| PositionEvent {
             event_type: e.event_type,
-            amount: e.amount.map(|a| a.to_string()),
+            amount: e.amount.map(|a: i64| a.to_string()),
             commitment: e.commitment,
             tx_hash: e.tx_hash,
             block_number: e.block_number as u64,
