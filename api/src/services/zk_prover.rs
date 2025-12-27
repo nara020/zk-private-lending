@@ -46,6 +46,7 @@ use halo2_proofs::{
     transcript::{Blake2bRead, Blake2bWrite, Challenge255},
 };
 use pasta_curves::{Fp, EqAffine};
+use ff::PrimeField;
 use rand::rngs::OsRng;
 
 use zk_private_lending_circuits::{CollateralCircuit, LTVCircuit, LiquidationCircuit};
