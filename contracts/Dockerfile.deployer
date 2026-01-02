@@ -1,0 +1,61 @@
+# ===================================================================
+# ZK Private Lending - Contract Deployer Dockerfile
+# ===================================================================
+#
+# Deploys contracts to local or remote Ethereum network
+#
+# Usage:
+#   docker build -f Dockerfile.deployer -t zk-lending-deployer .
+#   docker run -e RPC_URL=http://host:8545 zk-lending-deployer
+#
+# ===================================================================
+
+FROM ghcr.io/foundry-rs/foundry:latest
+
+WORKDIR /app
+
+# Copy contract files
+COPY . .
+
+# Install dependencies
+RUN forge install
+
+# Build contracts
+RUN forge build
+
+# Default environment variables
+ENV RPC_URL=http://localhost:8545
+ENV PRIVATE_KEY=""
+
+# Deploy script
+COPY <<'EOF' /deploy.sh
+#!/bin/bash
+set -e
+
+echo "🚀 Deploying ZK Private Lending contracts..."
+echo "RPC URL: $RPC_URL"
+
+# Wait for RPC to be available
+echo "⏳ Waiting for RPC..."
+for i in {1..30}; do
+  if curl -sf "$RPC_URL" > /dev/null 2>&1; then
+    echo "✅ RPC is available"
+    break
+  fi
+  sleep 1
+done
+
+# Deploy contracts
+cd /app
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url "$RPC_URL" \
+  --private-key "$PRIVATE_KEY" \
+  --broadcast \
+  -vvv
+
+echo "✅ Deployment complete!"
+EOF
+
+RUN chmod +x /deploy.sh
+
+ENTRYPOINT ["/deploy.sh"]
