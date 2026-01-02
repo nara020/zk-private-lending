@@ -1,0 +1,8 @@
+{
+    "collateral": "1000000000000000000",
+    "debt": "2000000000",
+    "salt": "99999",
+    "price": "150000000000",
+    "liquidation_threshold": "80",
+    "position_hash": "0"
+}

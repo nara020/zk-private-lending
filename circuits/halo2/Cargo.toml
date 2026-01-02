@@ -1,0 +1,57 @@
+[package]
+name = "zk-private-lending-circuits"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jinhyeok Kim"]
+description = "Privacy-preserving DeFi lending circuits using Halo2"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# PSE Halo2 (used by Scroll, Polygon zkEVM)
+halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v0.3.0" }
+
+# Note: Custom Poseidon implementation in gadgets/poseidon.rs
+# (halo2_gadgets not needed - we implemented our own ZK-friendly Poseidon)
+
+# Pasta curves (Pallas/Vesta for Halo2)
+pasta_curves = "0.5"
+
+# Field arithmetic
+ff = "0.13"
+group = "0.13"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Random for testing
+rand = "0.8"
+rand_core = "0.6"
+
+# WASM support
+wasm-bindgen = { version = "0.2", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+getrandom = { version = "0.2", features = ["js"], optional = true }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "circuit_benchmarks"
+harness = false
+
+[features]
+default = []
+dev-graph = []  # Enable circuit visualization
+wasm = ["wasm-bindgen", "console_error_panic_hook", "getrandom"]
+
+[profile.release]
+opt-level = 3
+lto = true
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"  # Optimize for size in WASM
