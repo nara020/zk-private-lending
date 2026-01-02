@@ -1,0 +1,70 @@
+[package]
+name = "zk-lending-api"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jinhyeok Kim"]
+description = "ZK Private Lending Backend API - Rust/Axum"
+
+[dependencies]
+# ============ Web Framework ============
+# Axum: tokio 기반 비동기 웹 프레임워크
+# 선택 이유: tower 생태계 활용, 타입 안전한 라우팅, 뛰어난 성능
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.35", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# ============ Serialization ============
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# ============ Database ============
+# SQLx: 컴파일 타임 쿼리 검증
+# 선택 이유: 타입 안전성, async 지원, 마이그레이션 내장
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+
+# ============ ZK Proof Generation ============
+# Halo2 회로와 동일한 버전 사용 (호환성)
+halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2", tag = "v0.3.0" }
+pasta_curves = "0.5"
+ff = "0.13"
+group = "0.13"
+
+# Local ZK circuits crate
+zk-private-lending-circuits = { path = "../circuits/halo2" }
+
+# ============ Cryptography ============
+rand = "0.8"
+rand_core = "0.6"
+sha3 = "0.10"              # Keccak256 (Ethereum 호환)
+hex = "0.4"
+
+# ============ Utilities ============
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"          # 에러 타입 정의
+anyhow = "1.0"             # 에러 전파
+tracing = "0.1"            # 구조화된 로깅
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"           # 환경변수 로드
+async-trait = "0.1"        # 비동기 트레이트
+
+# ============ HTTP Client (Oracle 연동) ============
+reqwest = { version = "0.11", features = ["json"] }
+
+# ============ Ethereum ============
+# ethers: 스마트 컨트랙트 상호작용
+ethers = { version = "2.0", features = ["legacy"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+# ZK proof 생성 최적화
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[[bin]]
+name = "zk-lending-api"
+path = "src/main.rs"

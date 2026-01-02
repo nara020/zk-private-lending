@@ -1,0 +1,601 @@
+openapi: 3.0.3
+info:
+  title: ZK Private Lending API
+  description: |
+    Privacy-preserving DeFi lending protocol API.
+
+    ## Overview
+    This API provides endpoints for:
+    - ZK proof generation (Collateral, LTV, Liquidation)
+    - Commitment computation (Poseidon hash)
+    - Price feeds (ETH/USD)
+    - Position and pool status queries
+
+    ## Security
+    - All proof generation requests use HTTPS
+    - Salt values are never stored server-side
+    - Proofs are generated on-demand and not cached
+
+    ## Rate Limits
+    - Proof generation: 10 requests/minute
+    - Price queries: 60 requests/minute
+    - Other endpoints: 100 requests/minute
+  version: 1.0.0
+  contact:
+    name: Jinhyeok Kim
+    email: nara020@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001
+    description: Development server
+  - url: https://api.zklending.example.com
+    description: Production server
+
+tags:
+  - name: Price
+    description: Price feed operations
+  - name: Proof
+    description: ZK proof generation
+  - name: Commitment
+    description: Commitment computation
+  - name: Position
+    description: User position queries
+  - name: Pool
+    description: Pool status queries
+  - name: Health
+    description: Health monitoring
+
+paths:
+  /api/price:
+    get:
+      tags:
+        - Price
+      summary: Get current ETH price
+      description: Returns the current ETH/USD price from the oracle
+      operationId: getEthPrice
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+              example:
+                ethPrice: 2000.50
+                lastUpdated: "2024-12-22T10:30:00Z"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/compute-commitment:
+    post:
+      tags:
+        - Commitment
+      summary: Compute Poseidon commitment
+      description: |
+        Computes a Poseidon hash commitment from amount and salt.
+
+        Formula: commitment = Poseidon(amount, salt)
+
+        Note: For maximum security, compute commitments client-side using WASM.
+      operationId: computeCommitment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommitmentRequest'
+            example:
+              amount: "1000000000000000000"
+              salt: "12345678901234567890"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitmentResponse'
+              example:
+                commitment: "0x1234567890abcdef..."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/prove/collateral:
+    post:
+      tags:
+        - Proof
+      summary: Generate collateral proof
+      description: |
+        Generates a ZK proof that the user knows the collateral amount
+        that matches the commitment.
+
+        **Privacy**: The actual collateral amount is never revealed.
+
+        **Verification**: Proof can be verified on-chain by the ZKVerifier contract.
+      operationId: generateCollateralProof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollateralProofRequest'
+            example:
+              amount: "1000000000000000000"
+              salt: "12345678901234567890"
+              commitment: "0x1234567890abcdef..."
+      responses:
+        '200':
+          description: Proof generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/prove/ltv:
+    post:
+      tags:
+        - Proof
+      summary: Generate LTV proof
+      description: |
+        Generates a ZK proof that the user's Loan-to-Value ratio
+        is within the allowed bounds (typically <= 75%).
+
+        **Formula**: LTV = (borrowAmount * 100) / (collateral * ethPrice)
+
+        **Privacy**: Neither collateral nor debt amounts are revealed.
+      operationId: generateLTVProof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LTVProofRequest'
+            example:
+              collateralAmount: "1000000000000000000"
+              collateralSalt: "12345678901234567890"
+              borrowAmount: "1000000000"
+              ethPrice: "200000000000"
+              maxLTV: "75"
+      responses:
+        '200':
+          description: Proof generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/prove/liquidation:
+    post:
+      tags:
+        - Proof
+      summary: Generate liquidation proof
+      description: |
+        Generates a ZK proof that a position is liquidatable
+        (health factor < 1.0).
+
+        **Usage**: Allows liquidators to prove a position can be liquidated
+        without revealing the exact position sizes.
+      operationId: generateLiquidationProof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiquidationProofRequest'
+            example:
+              collateralAmount: "1000000000000000000"
+              collateralSalt: "12345678901234567890"
+              debtAmount: "2000000000"
+              ethPrice: "200000000000"
+              liquidationThreshold: "80"
+      responses:
+        '200':
+          description: Proof generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProofResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/position/{address}:
+    get:
+      tags:
+        - Position
+      summary: Get user position
+      description: |
+        Returns the on-chain commitment data for a user's position.
+
+        Note: Actual amounts are not returned (they are private).
+        Only commitment hashes are visible.
+      operationId: getPosition
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Ethereum address of the user
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          example: "0x742d35Cc6634C0532925a3b844Bc9e7595f9C4Af"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Position not found
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/health/{address}:
+    get:
+      tags:
+        - Health
+      summary: Check position health
+      description: |
+        Returns the health factor for a user's position.
+
+        **Formula**: healthFactor = (collateralValue * liquidationThreshold) / debt
+
+        Position is liquidatable if healthFactor < 1.0
+      operationId: checkHealth
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Ethereum address of the user
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                healthFactor: 1.85
+                isLiquidatable: false
+        '404':
+          description: Position not found
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/debt/{address}:
+    get:
+      tags:
+        - Position
+      summary: Get user debt info
+      description: Returns principal, interest, and total debt for a user
+      operationId: getDebtInfo
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Ethereum address of the user
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebtInfoResponse'
+              example:
+                principal: "1000000000"
+                interest: "5000000"
+                total: "1005000000"
+        '404':
+          description: Position not found
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pool/status:
+    get:
+      tags:
+        - Pool
+      summary: Get pool status
+      description: Returns current pool statistics including utilization and interest rates
+      operationId: getPoolStatus
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolStatusResponse'
+              example:
+                totalCollateral: "100000000000000000000"
+                totalBorrowed: "50000000000"
+                availableLiquidity: "50000000000"
+                utilizationRate: 50.0
+                interestRate: 750
+                totalAccruedInterest: "1000000"
+                apy: 750
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/pool/apy:
+    get:
+      tags:
+        - Pool
+      summary: Get current APY
+      description: Returns the current annual percentage yield for borrowers
+      operationId: getAPY
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apy:
+                    type: number
+                    description: APY in basis points (750 = 7.50%)
+              example:
+                apy: 750
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    PriceResponse:
+      type: object
+      required:
+        - ethPrice
+        - lastUpdated
+      properties:
+        ethPrice:
+          type: number
+          description: ETH price in USD
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp of last price update
+
+    CommitmentRequest:
+      type: object
+      required:
+        - amount
+        - salt
+      properties:
+        amount:
+          type: string
+          description: Amount as string (to handle large numbers)
+        salt:
+          type: string
+          description: Random salt for commitment
+
+    CommitmentResponse:
+      type: object
+      required:
+        - commitment
+      properties:
+        commitment:
+          type: string
+          description: Poseidon hash commitment (hex)
+
+    CollateralProofRequest:
+      type: object
+      required:
+        - amount
+        - salt
+        - commitment
+      properties:
+        amount:
+          type: string
+          description: Collateral amount
+        salt:
+          type: string
+          description: Salt used in commitment
+        commitment:
+          type: string
+          description: Expected commitment hash
+
+    LTVProofRequest:
+      type: object
+      required:
+        - collateralAmount
+        - collateralSalt
+        - borrowAmount
+        - ethPrice
+        - maxLTV
+      properties:
+        collateralAmount:
+          type: string
+          description: Collateral amount in wei
+        collateralSalt:
+          type: string
+          description: Salt used in collateral commitment
+        borrowAmount:
+          type: string
+          description: Borrow amount in USDC (6 decimals)
+        ethPrice:
+          type: string
+          description: ETH price in USD (8 decimals)
+        maxLTV:
+          type: string
+          description: Maximum LTV ratio (75 = 75%)
+
+    LiquidationProofRequest:
+      type: object
+      required:
+        - collateralAmount
+        - collateralSalt
+        - debtAmount
+        - ethPrice
+        - liquidationThreshold
+      properties:
+        collateralAmount:
+          type: string
+          description: Collateral amount in wei
+        collateralSalt:
+          type: string
+          description: Salt used in collateral commitment
+        debtAmount:
+          type: string
+          description: Total debt amount in USDC
+        ethPrice:
+          type: string
+          description: ETH price in USD (8 decimals)
+        liquidationThreshold:
+          type: string
+          description: Liquidation threshold (80 = 80%)
+
+    ProofResponse:
+      type: object
+      required:
+        - proof
+        - publicInputs
+      properties:
+        proof:
+          type: string
+          description: ZK proof bytes (hex encoded)
+        publicInputs:
+          type: array
+          items:
+            type: string
+          description: Public inputs for verification
+
+    PositionResponse:
+      type: object
+      required:
+        - collateralCommitment
+        - debtCommitment
+        - isActive
+      properties:
+        collateralCommitment:
+          type: string
+          description: Collateral commitment hash
+        debtCommitment:
+          type: string
+          description: Debt commitment hash
+        isActive:
+          type: boolean
+          description: Whether position is active
+
+    HealthResponse:
+      type: object
+      required:
+        - healthFactor
+        - isLiquidatable
+      properties:
+        healthFactor:
+          type: number
+          description: Position health factor
+        isLiquidatable:
+          type: boolean
+          description: Whether position can be liquidated
+
+    DebtInfoResponse:
+      type: object
+      required:
+        - principal
+        - interest
+        - total
+      properties:
+        principal:
+          type: string
+          description: Principal debt amount
+        interest:
+          type: string
+          description: Accrued interest
+        total:
+          type: string
+          description: Total debt (principal + interest)
+
+    PoolStatusResponse:
+      type: object
+      required:
+        - totalCollateral
+        - totalBorrowed
+        - availableLiquidity
+        - utilizationRate
+        - interestRate
+        - totalAccruedInterest
+        - apy
+      properties:
+        totalCollateral:
+          type: string
+          description: Total collateral in wei
+        totalBorrowed:
+          type: string
+          description: Total borrowed in USDC
+        availableLiquidity:
+          type: string
+          description: Available liquidity in USDC
+        utilizationRate:
+          type: number
+          description: Pool utilization percentage
+        interestRate:
+          type: integer
+          description: Current interest rate in basis points
+        totalAccruedInterest:
+          type: string
+          description: Total accrued interest
+        apy:
+          type: integer
+          description: Annual percentage yield in basis points
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Invalid request parameters"
+            code: "BAD_REQUEST"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Internal server error"
+            code: "INTERNAL_ERROR"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for rate limiting (optional)
