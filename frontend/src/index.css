@@ -1,0 +1,192 @@
+/**
+ * Tailwind CSS Entry Point
+ *
+ * Interview Q&A:
+ *
+ * Q: Tailwind CSS 선택 이유?
+ * A: 1. Utility-first: 빠른 개발
+ *    2. 번들 최적화: PurgeCSS 자동 적용
+ *    3. 디자인 일관성: 토큰 기반
+ *    4. DX: IDE 자동완성 지원
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-slate-900 text-white antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-purple-600/50;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-purple-600;
+  }
+
+  /* Input number arrows 제거 */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+/* Custom Components */
+@layer components {
+  /* Glass morphism card */
+  .glass-card {
+    @apply rounded-2xl border border-purple-800/30 bg-black/40 backdrop-blur-sm;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-3 font-semibold text-white transition-all hover:from-purple-500 hover:to-pink-500 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply rounded-xl border border-purple-500 bg-transparent px-6 py-3 font-semibold text-purple-400 transition-all hover:bg-purple-500/10 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Form input */
+  .form-input {
+    @apply w-full rounded-xl border border-purple-800/30 bg-purple-900/20 px-4 py-3 text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none;
+  }
+
+  /* Status badge */
+  .badge-success {
+    @apply rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-400;
+  }
+
+  .badge-warning {
+    @apply rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-400;
+  }
+
+  .badge-danger {
+    @apply rounded-full bg-red-500/20 px-2 py-0.5 text-xs text-red-400;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse rounded bg-purple-800/50;
+  }
+}
+
+/* Custom Utilities */
+@layer utilities {
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-radial {
+    background: radial-gradient(
+      ellipse at center,
+      rgba(139, 92, 246, 0.15) 0%,
+      transparent 70%
+    );
+  }
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+  }
+  to {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+  }
+}
+
+/* Toast customization */
+.react-hot-toast {
+  @apply !bg-slate-800 !text-white;
+}
+
+/* Transaction status animations */
+.tx-pending {
+  @apply animate-pulse;
+}
+
+.tx-success {
+  @apply animate-fade-in;
+}
+
+/* ZK Badge glow effect */
+.zk-badge {
+  @apply relative overflow-hidden;
+}
+
+.zk-badge::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-purple-600/20 via-transparent to-pink-600/20;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
