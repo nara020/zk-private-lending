@@ -1,0 +1,74 @@
+# Render deployment Dockerfile
+# This file is at repo root for correct build context
+
+# ============ Stage 1: Builder ============
+FROM rust:latest AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    libpq-dev \
+    build-essential \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy Cargo files first (for dependency caching)
+COPY api/Cargo.toml ./api/
+COPY circuits/halo2/Cargo.toml ./circuits/halo2/
+
+# Create dummy source files for dependency caching
+RUN mkdir -p api/src circuits/halo2/src \
+    && echo "fn main() {}" > api/src/main.rs \
+    && echo "pub fn dummy() {}" > circuits/halo2/src/lib.rs
+
+# Build dependencies only (cached layer)
+WORKDIR /app/api
+RUN cargo build --release 2>/dev/null || true
+
+# Copy actual source code
+WORKDIR /app
+COPY api/ ./api/
+COPY circuits/halo2/ ./circuits/halo2/
+
+# Touch source files to trigger rebuild
+RUN touch api/src/main.rs circuits/halo2/src/lib.rs
+
+# Build the actual application
+WORKDIR /app/api
+RUN cargo build --release
+
+# ============ Stage 2: Runtime ============
+FROM debian:bookworm-slim AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -s /bin/bash app
+USER app
+
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/api/target/release/zk-lending-api /app/zk-lending-api
+
+# Render uses PORT env variable
+ENV PORT=10000
+EXPOSE 10000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
+
+# Run the application
+CMD ["./zk-lending-api"]
