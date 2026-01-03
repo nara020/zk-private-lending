@@ -1,18 +1,7 @@
 -- Initial Migration: ZK Private Lending Database Schema
 --
--- Interview Q&A:
---
--- Q: 왜 positions 테이블에 실제 담보 금액을 저장하지 않는가?
--- A: 프라이버시 보호가 프로젝트의 핵심!
---    - 온체인에도 commitment(해시)만 저장
---    - DB에도 동일하게 commitment만 저장
---    - 실제 금액은 사용자 클라이언트에만 존재
---
--- Q: 인덱스 전략은?
--- A: 조회 패턴 기반 최적화
---    - positions(address): 사용자별 조회 O(1)
---    - position_events(address, timestamp): 히스토리 범위 조회
---    - proof_logs(created_at): 분석용 시계열 조회
+-- Stores commitments (hashes) for privacy - actual amounts are never stored.
+-- Indexes optimized for address lookups and time-series queries.
 
 -- ============ Positions Table ============
 -- 사용자 포지션 (현재 상태)

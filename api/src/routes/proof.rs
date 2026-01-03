@@ -1,30 +1,7 @@
 //! ZK Proof Generation Endpoints
 //!
-//! # Interview Q&A
-//!
-//! Q: ZK Proof 생성을 왜 백엔드에서 하는가? 클라이언트에서 할 수도 있지 않은가?
-//! A: 둘 다 가능하지만 트레이드오프가 있음
-//!
-//!    백엔드 생성 (현재 선택):
-//!    ✅ 사용자 디바이스 성능과 무관
-//!    ✅ Proving Key를 안전하게 관리
-//!    ✅ 일관된 성능 보장
-//!    ❌ 서버 부하, 사용자가 private input을 서버에 전송
-//!
-//!    클라이언트 생성 (대안):
-//!    ✅ 완전한 프라이버시 (서버도 값 모름)
-//!    ✅ 서버 부하 없음
-//!    ❌ WASM 빌드 필요, 브라우저 성능 의존
-//!    ❌ 모바일에서 느림
-//!
-//!    향후 개선: 클라이언트 WASM 옵션 제공
-//!
-//! Q: Proof 생성 시간이 오래 걸리면 어떻게 처리하는가?
-//! A: 여러 전략 가능
-//!    1. 타임아웃 설정 (현재: 30초)
-//!    2. 비동기 처리: 요청 → job_id 반환 → 폴링으로 결과 조회
-//!    3. WebSocket으로 진행 상황 알림
-//!    4. Proof 캐싱 (동일 입력이면 재사용)
+//! Provides REST API endpoints for generating ZK proofs (collateral, LTV, liquidation).
+//! Proofs are generated server-side using Halo2 circuits.
 
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};

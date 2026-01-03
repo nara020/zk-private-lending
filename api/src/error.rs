@@ -1,23 +1,7 @@
 //! Error Handling Module
 //!
-//! # Interview Q&A
-//!
-//! Q: 에러 처리 전략은 어떻게 설계했는가?
-//! A: 3가지 원칙을 따름
-//!    1. 타입 안전성: thiserror로 명시적 에러 타입 정의
-//!    2. 계층 분리: 내부 에러 vs 외부 응답 에러 분리
-//!    3. 컨텍스트 보존: 에러 체인으로 원인 추적 가능
-//!
-//! Q: 왜 anyhow와 thiserror를 함께 사용하는가?
-//! A: 역할이 다름
-//!    - thiserror: 라이브러리/도메인 에러 정의 (구체적)
-//!    - anyhow: 앱 레벨 에러 전파 (편리함)
-//!    - 라우트 핸들러에서는 ApiError로 변환하여 HTTP 응답
-//!
-//! Q: 에러 로깅은 어떻게 하는가?
-//! A: tracing을 사용하여 구조화된 로깅
-//!    - 에러 발생 시 자동으로 span 정보 포함
-//!    - 프로덕션에서는 JSON 포맷으로 로그 수집 시스템 연동
+//! Provides type-safe error handling with proper HTTP status code mapping.
+//! Uses thiserror for domain errors and integrates with tracing for structured logging.
 
 use axum::{
     http::StatusCode,

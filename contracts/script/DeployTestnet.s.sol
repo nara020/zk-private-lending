@@ -34,20 +34,6 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 ///      --broadcast \
 ///      --verify \
 ///      -vvvv
-///
-/// == Interview Q&A ==
-///
-/// Q: 테스트넷 배포 시 주의사항?
-/// A: 1. 충분한 테스트넷 ETH 확보 (faucet)
-///    2. 컨트랙트 검증 (verify) 필수
-///    3. 배포 주소 기록 및 관리
-///    4. 환경별 설정 분리
-///
-/// Q: 배포 후 검증 절차?
-/// A: 1. 컨트랙트 소스 코드 검증
-///    2. 권한 설정 확인
-///    3. 기본 기능 테스트 (deposit/borrow)
-///    4. 이벤트 발생 확인
 
 /// @title Base Deployment Contract
 /// @notice 공통 배포 로직

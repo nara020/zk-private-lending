@@ -1,15 +1,8 @@
 /**
- * DepositForm - ETH 담보 예치 폼
+ * DepositForm - ETH Collateral Deposit Form
  *
- * Interview Q&A:
- *
- * Q: 예치 과정에서 프라이버시는 어떻게 보장되는가?
- * A: commitment = Hash(amount, salt)
- *    1. 사용자가 랜덤 salt 생성 (로컬에서)
- *    2. commitment 계산 (로컬에서)
- *    3. commitment만 온체인에 저장
- *    4. salt는 사용자 브라우저에만 저장
- *    → 온체인에서는 실제 금액을 알 수 없음
+ * Handles ETH deposits with privacy-preserving commitments.
+ * The actual deposit amount is hidden on-chain using cryptographic commitments.
  */
 
 import { useState } from 'react';

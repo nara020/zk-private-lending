@@ -1,18 +1,7 @@
 //! Configuration Module
 //!
-//! # Interview Q&A
-//!
-//! Q: 환경변수 vs 설정 파일, 어떤 방식을 선택했고 왜인가?
-//! A: 환경변수를 선택
-//!    - 12-Factor App 원칙 준수
-//!    - Docker/K8s 배포 시 환경별 설정 분리 용이
-//!    - 민감 정보(DB 비밀번호 등)를 코드에 포함하지 않음
-//!    - CI/CD 파이프라인에서 쉽게 주입 가능
-//!
-//! Q: 설정 검증은 어떻게 하는가?
-//! A: from_env()에서 필수 값 검증 → 없으면 즉시 실패 (fail-fast)
-//!    - 앱 시작 시점에 모든 설정 검증
-//!    - 런타임 에러보다 시작 실패가 디버깅에 유리
+//! Environment-based configuration following 12-Factor App principles.
+//! Supports development defaults with production overrides.
 
 use std::env;
 use anyhow::{Context, Result};

@@ -1,25 +1,8 @@
 /**
  * ZK Proof Generation Hook
  *
- * WASM 기반 ZK 증명 생성 및 관리 훅
- *
- * # Interview Q&A
- *
- * Q: 왜 프론트엔드에서 ZK 증명을 생성하나요?
- * A: 프라이버시 보호!
- *    - 실제 담보 금액과 salt는 사용자 브라우저에서만 존재
- *    - 서버나 블록체인에 전송되지 않음
- *    - WASM으로 브라우저에서 직접 증명 생성
- *
- * Q: WASM 성능은 어떤가요?
- * A: - Halo2 WASM: ~2-5초 (브라우저)
- *    - 네이티브 Rust: ~0.5-1초
- *    - 사용자 경험을 위해 로딩 상태 표시 필수
- *
- * Q: 보안 고려사항은?
- * A: 1. salt는 암호학적으로 안전한 난수 사용
- *    2. private inputs는 메모리에서 즉시 삭제
- *    3. WASM 바이너리 무결성 검증
+ * WASM-based ZK proof generation and management for browser-side proving.
+ * Supports collateral proofs, LTV proofs, and liquidation proofs.
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';

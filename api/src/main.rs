@@ -30,19 +30,6 @@
 //! │  ZKVerifier    CommitmentRegistry    ZKLendingPool          │
 //! └─────────────────────────────────────────────────────────────┘
 //! ```
-//!
-//! # Interview Q&A
-//!
-//! Q: 왜 layered architecture를 선택했는가?
-//! A: 1. 테스트 용이성 - 각 레이어를 독립적으로 테스트 가능
-//!    2. 관심사 분리 - 라우팅, 비즈니스 로직, 데이터 접근 분리
-//!    3. 확장성 - 새로운 엔드포인트 추가 시 기존 코드 영향 최소화
-//!
-//! Q: Axum의 State 공유 방식은?
-//! A: Arc<AppState>를 사용하여 여러 핸들러에서 안전하게 공유
-//!    - DB 커넥션 풀: Arc<Pool<Postgres>>
-//!    - ZK Prover: Arc<Mutex<ZKProver>> (상태 있는 경우)
-//!    - Config: Arc<Config> (읽기 전용)
 
 use std::net::SocketAddr;
 use std::sync::Arc;

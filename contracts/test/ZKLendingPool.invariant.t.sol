@@ -145,23 +145,6 @@ contract Handler is Test {
 
 /// @title ZKLendingPoolInvariantTest
 /// @notice ZKLendingPool의 불변 조건 테스트
-/// @dev
-/// == Invariant Testing 이란? ==
-/// - 시스템이 어떤 상황에서도 반드시 유지해야 하는 조건 검증
-/// - Foundry가 Handler 함수들을 랜덤하게 호출하며 테스트
-/// - DeFi 프로토콜에서 자금 안전을 보장하는 핵심 테스트
-///
-/// == Interview Q&A ==
-/// Q: Invariant 테스트의 장점은?
-/// A: 1. 수동으로 생각하기 어려운 엣지 케이스 발견
-///    2. 상태 전이 조합 자동 탐색
-///    3. 경제적 공격 시나리오 탐지
-///
-/// Q: 어떤 invariant를 테스트해야 하는가?
-/// A: 1. 자금 보존: 들어온 자금 = 나간 자금 + 잔액
-///    2. 상태 일관성: 데이터 구조 간 불일치 없음
-///    3. 권한: 권한 없는 접근 불가
-///    4. 수학적 제약: LTV, 이자율 등 범위 제한
 contract ZKLendingPoolInvariantTest is StdInvariant, Test {
     ZKLendingPool public pool;
     CommitmentRegistry public registry;
@@ -293,17 +276,6 @@ contract ZKLendingPoolInvariantTest is StdInvariant, Test {
 
 /// @title ZKLendingPoolFuzzTest
 /// @notice ZKLendingPool의 Fuzz 테스트
-/// @dev
-/// == Fuzz Testing 이란? ==
-/// - 랜덤 입력값으로 함수 테스트
-/// - 경계값, 예외 케이스 자동 탐색
-/// - property-based testing의 일종
-///
-/// == Interview Q&A ==
-/// Q: Fuzz 테스트와 Unit 테스트의 차이?
-/// A: - Unit: 특정 입력 → 특정 출력 검증
-///    - Fuzz: 랜덤 입력 → 속성(property) 검증
-///    - Fuzz가 더 많은 케이스 커버
 contract ZKLendingPoolFuzzTest is Test {
     ZKLendingPool public pool;
     CommitmentRegistry public registry;

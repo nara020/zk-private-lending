@@ -1,19 +1,9 @@
 /**
  * ZK Private Lending - Main Application
  *
- * Interview Q&A:
- *
- * Q: React 앱 구조 설계 시 고려사항은?
- * A: 1. 컴포넌트 분리 (Container/Presentational)
- *    2. 상태 관리 (Zustand - 경량, 간단)
- *    3. API 통신 (React Query - 캐싱, 로딩 상태)
- *    4. 타입 안전성 (TypeScript)
- *
- * Q: Web3 앱에서 UX 고려사항은?
- * A: 1. 지갑 연결 상태 명확히 표시
- *    2. 트랜잭션 진행 상태 피드백
- *    3. 에러 메시지 사용자 친화적으로
- *    4. 가스비 예측 표시
+ * Privacy-first DeFi lending protocol frontend built with React, TypeScript,
+ * and Zustand for state management. Integrates with ZK proof generation
+ * for private collateral verification.
  */
 
 import { useState } from 'react';

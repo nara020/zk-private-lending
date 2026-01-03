@@ -1,20 +1,11 @@
-# ===================================================================
 # ZK Private Lending - Docker Compose
-# ===================================================================
 #
-# Full stack development environment with frontend support
+# Full stack development environment
 #
 # Usage:
-#   Development:
-#     docker-compose up -d              # Start all services
-#     docker-compose logs -f api        # View API logs
-#     docker-compose down               # Stop all services
-#
-#   Production:
-#     docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-#
-#   With Deploy:
-#     docker-compose --profile deploy up -d  # Deploy contracts
+#   docker-compose up -d              # Start all services
+#   docker-compose logs -f api        # View API logs
+#   docker-compose down               # Stop all services
 #
 # Ports:
 #   - 3000: API server
@@ -22,21 +13,6 @@
 #   - 5432: PostgreSQL
 #   - 8545: Anvil (local Ethereum)
 #   - 6379: Redis
-#
-# Interview Q&A:
-#
-# Q: 왜 Docker Compose를 사용하는가?
-# A: 멀티 컨테이너 환경 관리
-#    - API + DB + Frontend를 한 번에 실행
-#    - 개발 환경과 프로덕션 환경 일관성
-#    - 의존성 관리 (DB 먼저 시작 등)
-#
-# Q: 프로덕션에서도 Docker Compose?
-# A: 보통은 Kubernetes 사용
-#    - 스케일링, 롤링 업데이트, 자동 복구
-#    - Docker Compose는 개발/소규모 배포용
-#
-# ===================================================================
 
 version: '3.8'
 

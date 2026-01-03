@@ -1,19 +1,8 @@
 /**
- * useWallet Hook - 지갑 연결 관리
+ * useWallet Hook - Wallet Connection Management
  *
- * Interview Q&A:
- *
- * Q: 지갑 상태 관리를 어떻게 하는가?
- * A: Zustand 사용
- *    - 경량 상태 관리 라이브러리
- *    - Redux보다 간단, Context보다 성능 좋음
- *    - persist 미들웨어로 세션 유지
- *
- * Q: ethers v6 vs v5 차이점은?
- * A: 주요 변경사항
- *    - BigNumber → bigint (네이티브)
- *    - Provider/Signer 분리 강화
- *    - 더 나은 TypeScript 지원
+ * Zustand-based state management for Web3 wallet connections.
+ * Handles MetaMask integration, account changes, and network switching.
  */
 
 import { create } from 'zustand';

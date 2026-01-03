@@ -1,26 +1,12 @@
 //! WebSocket Service
 //!
-//! 실시간 데이터 스트리밍을 위한 WebSocket 서비스
+//! Real-time data streaming via WebSocket.
 //!
 //! # Features
-//! - Pool 상태 실시간 업데이트
-//! - 사용자 포지션 변경 알림
-//! - 가격 변동 알림
-//! - 청산 경고
-//!
-//! # Interview Q&A
-//!
-//! Q: WebSocket vs SSE (Server-Sent Events)?
-//! A: WebSocket 선택 이유:
-//!    - 양방향 통신 (클라이언트 → 서버 요청 가능)
-//!    - 구독/구독취소 동적 제어
-//!    - 더 낮은 레이턴시
-//!
-//! Q: 확장성 고려사항은?
-//! A: 1. Redis Pub/Sub으로 다중 서버 지원
-//!    2. 메시지 큐로 버퍼링
-//!    3. Connection pooling
-//!    4. Heartbeat로 연결 상태 관리
+//! - Pool status live updates
+//! - User position change notifications
+//! - Price change alerts
+//! - Liquidation warnings
 
 use std::collections::HashMap;
 use std::sync::Arc;

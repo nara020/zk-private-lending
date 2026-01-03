@@ -1,19 +1,8 @@
 /**
- * RepayForm - 대출 상환 폼
+ * RepayForm - Loan Repayment Form
  *
- * Interview Q&A:
- *
- * Q: 상환 시 ZK 증명이 필요한가?
- * A: 상환은 증명 불필요
- *    - 상환은 사용자에게 유리한 행동
- *    - 부채 감소는 검증 없이 허용
- *    - 단, 상환 후 commitment 업데이트 필요
- *
- * Q: 부분 상환 vs 전액 상환?
- * A: 둘 다 지원
- *    - 부분: 원하는 만큼 상환
- *    - 전액: 모든 부채 + 이자 상환
- *    - 전액 상환 시 담보 인출 가능
+ * Handles USDC loan repayments including partial and full repayment options.
+ * Full repayment unlocks collateral for withdrawal.
  */
 
 import { useState } from 'react';

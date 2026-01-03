@@ -1,27 +1,9 @@
-# ===================================================================
 # ZK Private Lending - CI/CD Pipeline
-# ===================================================================
 #
-# Continuous Integration workflow for:
+# Continuous Integration for:
 # - Rust API (Halo2 circuits)
 # - Solidity contracts (Foundry)
 # - Circom circuits
-#
-# Interview Q&A:
-#
-# Q: CI/CD 파이프라인 설계 시 고려사항은?
-# A: 1. 빌드 시간 최적화 (캐싱, 병렬 실행)
-#    2. 테스트 커버리지
-#    3. 보안 (secrets 관리, 의존성 스캔)
-#    4. 실패 시 빠른 피드백
-#
-# Q: Matrix strategy를 사용하는 이유는?
-# A: 여러 환경에서 동시 테스트
-#    - OS: ubuntu, macos, windows
-#    - Rust 버전: stable, nightly
-#    - 병렬 실행으로 시간 단축
-#
-# ===================================================================
 
 name: CI
 

@@ -1,28 +1,7 @@
 //! Position Endpoints
 //!
-//! # Interview Q&A
-//!
-//! Q: 왜 포지션 데이터를 DB에 저장하는가? 블록체인에 있지 않은가?
-//! A: 블록체인 데이터 조회의 한계
-//!
-//!    블록체인에서 직접 조회:
-//!    ❌ 느림 (매번 RPC 호출)
-//!    ❌ 히스토리 조회 어려움 (이벤트 스캔 필요)
-//!    ❌ 복잡한 쿼리 불가능
-//!
-//!    DB 인덱싱:
-//!    ✅ 빠른 조회 (인덱스 활용)
-//!    ✅ 히스토리 쿼리 간편
-//!    ✅ 복잡한 분석 가능
-//!
-//!    → "이벤트 소싱" 패턴: 블록체인 이벤트를 DB에 동기화
-//!
-//! Q: 블록체인과 DB 데이터 불일치는 어떻게 처리하는가?
-//! A: "Eventually Consistent" 접근
-//!    1. 블록체인이 진실의 원천 (Source of Truth)
-//!    2. DB는 읽기 최적화용 캐시
-//!    3. 불일치 감지 시 재동기화
-//!    4. 중요한 작업은 블록체인에서 직접 검증
+//! Provides user position queries with paginated history.
+//! Uses event sourcing pattern to index blockchain events for fast queries.
 
 use axum::{
     extract::{Path, State, Query},

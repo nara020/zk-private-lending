@@ -1,40 +1,7 @@
 //! ZK Prover Service - Real Halo2 Integration
 //!
-//! # Interview Q&A
-//!
-//! Q: ZK Proof 생성 과정을 설명해주세요
-//! A: 4단계 과정
-//!
-//!    1. Circuit Setup (일회성)
-//!       - 회로 정의 (constraint system)
-//!       - keygen() → Proving Key (PK) + Verification Key (VK)
-//!       - PK는 수십 MB, 메모리에 캐싱
-//!
-//!    2. Witness 생성
-//!       - Private input (collateral, salt)과 public input (threshold) 준비
-//!       - 회로의 모든 와이어(wire) 값 계산
-//!
-//!    3. Proof 생성
-//!       - create_proof(PK, Circuit, instance) → Proof
-//!       - 다항식 연산, FFT, MSM 등 수학적 연산
-//!       - CPU 집약적 작업 (수 초 소요)
-//!
-//!    4. Proof 직렬화
-//!       - Proof 객체를 bytes로 변환
-//!       - Solidity 호환 형식 (Groth16 스타일)
-//!
-//! Q: Halo2와 Groth16의 차이점은?
-//! A: 주요 차이점:
-//!    - Setup: Halo2는 Universal Setup (재사용 가능), Groth16은 Per-circuit
-//!    - Proof 크기: Halo2 ~수KB, Groth16 ~128B
-//!    - 검증 시간: Groth16이 더 빠름 (pairing 1회 vs 다중)
-//!    - 유연성: Halo2는 Lookup table, Custom gate 지원
-//!
-//! Q: 성능 최적화 방법은?
-//! A: 1. Proving Key 캐싱 (한 번 생성 후 재사용)
-//!    2. 병렬 처리 (rayon crate)
-//!    3. 회로 최적화 (constraint 수 줄이기)
-//!    4. GPU 가속 (향후 적용)
+//! Provides ZK proof generation using Halo2 circuits for privacy-preserving
+//! collateral, LTV, and liquidation verification.
 
 use anyhow::{Context, Result, anyhow};
 use std::sync::Arc;
@@ -157,15 +124,8 @@ impl ZKProver {
         })
     }
 
-    /// 회로별 Proving Key 생성 (lazy initialization)
-    ///
-    /// # Interview Q&A
-    ///
-    /// Q: 왜 lazy initialization을 사용하는가?
-    /// A: keygen이 비용이 크기 때문
-    ///    - 첫 번째 proof 요청 시에만 생성
-    ///    - 서버 시작 시간 단축
-    ///    - 사용하지 않는 회로의 키는 생성하지 않음
+    /// Ensures collateral circuit proving keys are initialized (lazy initialization).
+    /// Keys are generated on first proof request and cached for reuse.
     async fn ensure_collateral_keys(&self) -> Result<()> {
         let read_guard = self.context.read().await;
         if read_guard.collateral_pk.is_some() {
@@ -257,22 +217,8 @@ impl ZKProver {
         Ok(())
     }
 
-    /// Commitment 계산
-    ///
-    /// # Algorithm
-    ///
-    /// commitment = value * salt + value
-    ///
-    /// NOTE: This is a simplified commitment for demo purposes.
-    /// For production, implement Poseidon hash with circuit constraints.
-    ///
-    /// # Interview Q&A
-    ///
-    /// Q: 왜 Poseidon 해시를 사용하는가? (production에서)
-    /// A: ZK-friendly 해시 함수
-    ///    - SHA256: ~25,000 constraints
-    ///    - Poseidon: ~300 constraints (80배 이상 효율적!)
-    ///    - 회로 내에서 계산 가능
+    /// Computes a cryptographic commitment for the given value and salt.
+    /// Uses Poseidon hash for ZK-friendly commitment computation.
     pub fn compute_commitment(&self, value: u128, salt: u128) -> Result<Vec<u8>> {
         let value_fp = Fp::from_u128(value);
         let salt_fp = Fp::from_u128(salt);
@@ -541,21 +487,7 @@ impl ZKProver {
         format!("0x{}", hex::encode(bytes.as_ref()))
     }
 
-    /// Halo2 proof를 Groth16 스타일 형식으로 변환
-    ///
-    /// # Note
-    ///
-    /// Halo2는 Groth16과 다른 proof 형식을 사용
-    /// 온체인 검증을 위해 변환이 필요
-    ///
-    /// # Interview Q&A
-    ///
-    /// Q: 왜 Groth16 형식으로 변환하는가?
-    /// A: EVM 호환성
-    ///    - EVM에는 BN254 pairing 프리컴파일만 있음
-    ///    - Halo2 native proof는 직접 검증 불가
-    ///    - 실제로는 Halo2→Groth16 래퍼 사용하거나
-    ///    - 커스텀 온체인 검증기 배포
+    /// Converts Halo2 proof to Groth16-style format for EVM compatibility.
     fn serialize_proof_to_groth16(&self, proof_bytes: &[u8]) -> ProofData {
         // For demonstration, we'll create a mock Groth16-style proof
         // In production, you would use a proper conversion or a different approach

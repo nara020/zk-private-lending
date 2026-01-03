@@ -1,13 +1,7 @@
 /**
  * Tailwind CSS Entry Point
  *
- * Interview Q&A:
- *
- * Q: Tailwind CSS 선택 이유?
- * A: 1. Utility-first: 빠른 개발
- *    2. 번들 최적화: PurgeCSS 자동 적용
- *    3. 디자인 일관성: 토큰 기반
- *    4. DX: IDE 자동완성 지원
+ * Global styles and custom components for ZK Private Lending UI.
  */
 
 @tailwind base;

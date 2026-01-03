@@ -162,29 +162,25 @@ template CollateralProof(BITS) {
 | Production DeFi | **Halo2** or **Circom** | Battle-tested |
 | Learning ZK | Circom → arkworks → Halo2 | Progressive complexity |
 
-## 7. Interview Response
+## 7. Design Rationale: Why Halo2?
 
-```
-면접관: "왜 Halo2를 메인으로 선택했나요?"
+After implementing the same circuit logic in all three stacks, here's the comparison:
 
-나: "세 가지 스택을 직접 비교해봤습니다.
+**1. Efficiency**
+- Halo2 lookup: 1 constraint for range check
+- arkworks/Circom bit decomposition: 64 constraints
+- 64x difference in constraint count
 
-1. Range Check 효율성:
-   - Halo2 lookup: 1개 constraint
-   - arkworks/Circom bit decomposition: 64개 constraints
-   - 64배 차이가 납니다.
+**2. Development Experience**
+- Circom: Fastest development, but limited for complex logic
+- arkworks: Deep R1CS understanding, academic standard
+- Halo2: Steep learning curve, but most flexible
 
-2. 개발 경험:
-   - Circom이 가장 빠르고 쉽지만, 복잡한 로직에 한계
-   - arkworks는 R1CS 패러다임 깊이 이해에 좋음
-   - Halo2는 learning curve 높지만 가장 유연
+**3. Industry Adoption**
+- Scroll, Polygon zkEVM use Halo2
+- Standard for L2 core development
 
-3. 산업 표준:
-   - Scroll, Polygon zkEVM이 Halo2 사용
-   - L2 코어 개발 준비를 위해 Halo2 선택
-
-결론: PoC는 Circom, 프로덕션은 Halo2가 적합합니다."
-```
+**Conclusion**: Use Circom for PoC, Halo2 for production.
 
 ## 8. Implementation Details
 

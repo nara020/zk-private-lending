@@ -204,43 +204,36 @@ fn test_collateral_proof_valid() {
 | **Proving Time** | ~1s | ~2s | ~1.5s |
 | **Verification Time** | ~5ms | ~3ms | ~3ms |
 
-## 🎓 Interview Q&A
+## FAQ
 
-### Q: 왜 Halo2를 선택했는가?
+### Why Halo2?
 
-**A:** 3가지 이유
+1. **Efficiency**: Lookup table enables single-constraint range check
+2. **Flexibility**: Custom gates for complex logic
+3. **Industry Standard**: Used by Scroll, zkSync, and other L2s
 
-1. **효율성**: Lookup table로 range check가 1 constraint
-2. **유연성**: Custom gate로 복잡한 로직 표현 가능
-3. **실무 채택**: Scroll, zkSync 등 L2에서 사용
+### Trusted Setup?
 
-### Q: Trusted Setup은 필요한가?
+Halo2 uses "Universal Setup":
+- No per-circuit setup required
+- KZG commitment-based SRS (Structured Reference String)
+- One-time Powers of Tau ceremony
 
-**A:** Halo2는 "Universal Setup" 사용
+### PlonK vs Groth16
 
-- 회로마다 새로 setup 할 필요 없음
-- KZG commitment 기반 SRS(Structured Reference String)
-- Powers of Tau ceremony로 1회 생성
+| Aspect | PlonK | Groth16 |
+|--------|-------|---------|
+| Setup | Universal (once) | Per-circuit |
+| Proof Size | 384+ bytes | 128 bytes |
+| Verification | Slightly slower | Fastest |
+| Flexibility | High | Low |
 
-### Q: PlonK와 Groth16의 차이점은?
+### Circuit Optimization Techniques
 
-**A:**
-
-| 특성 | PlonK | Groth16 |
-|-----|-------|---------|
-| Setup | Universal (1회) | Per-circuit |
-| Proof 크기 | 384+ bytes | 128 bytes |
-| 검증 시간 | 약간 느림 | 가장 빠름 |
-| 유연성 | 높음 | 낮음 |
-
-### Q: 회로 최적화 기법은?
-
-**A:**
-
-1. **Lookup 활용**: Range check에 비트 분해 대신 lookup
-2. **Custom Gate**: 복잡한 로직을 1개 gate로
-3. **Column 재사용**: 여러 region에서 같은 column 사용
-4. **Rotation 최소화**: 인접 행 접근이 효율적
+1. **Lookup Usage**: Use lookup instead of bit decomposition for range checks
+2. **Custom Gates**: Express complex logic in single gate
+3. **Column Reuse**: Share columns across regions
+4. **Minimize Rotations**: Adjacent row access is most efficient
 
 ## 🔗 참고 자료
 

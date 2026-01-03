@@ -1,39 +1,7 @@
 //! Repository Pattern Implementation
 //!
-//! # Interview Q&A
-//!
-//! Q: Repository 패턴이란?
-//! A: 데이터 접근 로직을 추상화하는 패턴
-//!
-//!    장점:
-//!    - 비즈니스 로직과 데이터 접근 분리
-//!    - 테스트 시 Mock 구현 쉬움
-//!    - DB 교체 시 영향 최소화
-//!
-//!    ```rust
-//!    // Service 레이어
-//!    let position = repository.find_by_address(&address).await?;
-//!
-//!    // Repository 인터페이스
-//!    trait PositionRepository {
-//!        async fn find_by_address(&self, addr: &str) -> Result<Option<Position>>;
-//!        async fn save(&self, position: &Position) -> Result<()>;
-//!    }
-//!
-//!    // PostgreSQL 구현
-//!    impl PositionRepository for PgPositionRepository { ... }
-//!
-//!    // 테스트용 Mock
-//!    impl PositionRepository for MockPositionRepository { ... }
-//!    ```
-//!
-//! Q: 현재 코드에서 Repository 패턴을 사용하지 않은 이유는?
-//! A: MVP 단계에서 오버엔지니어링 방지
-//!    - 단일 DB (PostgreSQL)만 사용
-//!    - 복잡한 추상화보다 직접 쿼리가 명확
-//!    - 필요 시 리팩토링 가능
-//!
-//!    프로덕션에서는 trait 기반 추상화 권장
+//! Provides trait-based abstraction for data access operations.
+//! Enables easy testing with mock implementations.
 
 // 현재는 Database 구조체에 직접 구현
 // 향후 Repository trait로 분리 가능

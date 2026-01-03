@@ -1,57 +1,23 @@
 # ZK Private Lending Frontend
 
-React + TypeScript + Vite 기반 프론트엔드
+React + TypeScript + Vite frontend for ZK-Private Lending.
 
-## Interview Q&A
+## Tech Stack
 
-### Q: 기술 스택 선택 이유?
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI library with Concurrent Features |
+| TypeScript | Type safety and better DX |
+| Vite | Fast ESM-based dev server |
+| Zustand | Lightweight state management (~1KB) |
+| React Query | Server state management with caching |
+| ethers.js v6 | Web3 interactions with native BigInt |
 
-**React 18**
-- 가장 널리 사용되는 UI 라이브러리
-- 풍부한 생태계 (Web3 라이브러리 호환)
-- Concurrent Features 지원
+## Privacy Considerations
 
-**TypeScript**
-- 타입 안전성 → 버그 감소
-- 개발자 경험 향상 (자동완성)
-- Web3 ABI 타입 지원
-
-**Vite**
-- 빠른 개발 서버 (ESM 기반)
-- 최적화된 프로덕션 빌드
-- React HMR 지원
-
-**Zustand**
-- Redux보다 간단한 상태 관리
-- TypeScript 지원 우수
-- 번들 크기 작음 (~1KB)
-
-**React Query**
-- 서버 상태 관리 최적화
-- 자동 캐싱, 백그라운드 갱신
-- 로딩/에러 상태 관리
-
-**ethers.js v6**
-- Web3 상호작용 표준 라이브러리
-- TypeScript 네이티브 지원
-- BigInt 네이티브 사용
-
-### Q: ZK DeFi 앱의 특수한 고려사항?
-
-1. **Private Data 관리**
-   - salt, 실제 금액은 로컬에만 저장
-   - 브라우저 localStorage 사용
-   - 사용자가 백업 책임
-
-2. **Commitment 표시**
-   - 온체인 데이터는 commitment만
-   - 실제 값은 로컬에서 복원
-   - 불일치 시 경고 표시
-
-3. **증명 생성 UX**
-   - 증명 생성은 시간 소요 (5-30초)
-   - 로딩 상태 명확히 표시
-   - 진행 상황 피드백
+1. **Private Data**: salt and actual amounts stored locally only (localStorage)
+2. **Commitment Display**: On-chain data shows only commitments; actual values restored locally
+3. **Proof Generation UX**: ZK proof generation takes 5-30 seconds; show clear loading states
 
 ## 프로젝트 구조
 

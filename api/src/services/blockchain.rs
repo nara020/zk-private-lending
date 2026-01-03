@@ -1,20 +1,11 @@
 //! Blockchain Service
 //!
-//! 블록체인 네트워크와의 상호작용을 담당하는 서비스
+//! Handles blockchain network interactions.
 //!
 //! # Features
-//! - Contract 상태 조회
-//! - 트랜잭션 빌더
-//! - 이벤트 구독
-//!
-//! # Interview Q&A
-//!
-//! Q: 왜 ethers-rs 대신 alloy를 사용하나요?
-//! A: alloy는 ethers-rs의 후속 프로젝트로:
-//!    - 더 나은 타입 안전성
-//!    - 더 작은 바이너리 크기
-//!    - 더 빠른 컴파일
-//!    - 최신 Rust 패턴 사용
+//! - Contract state queries
+//! - Transaction builder
+//! - Event subscription
 
 use std::sync::Arc;
 use anyhow::{Result, Context};

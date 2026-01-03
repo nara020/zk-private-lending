@@ -2,17 +2,6 @@
 //!
 //! Proves: debt/collateral <= max_ltv without revealing actual amounts
 //!
-//! # Interview Q&A
-//!
-//! Q: 유한 필드에서 나눗셈을 어떻게 피하는가?
-//! A: 부등식을 곱셈으로 변환
-//!    debt/collateral <= max_ltv/100
-//!    → debt * 100 <= collateral * max_ltv
-//!
-//! Q: R1CS에서 비교 연산의 비용은?
-//! A: 비트 분해 필요 → ~64 constraints (64-bit 값)
-//!    Halo2 lookup table은 1 constraint
-//!
 //! # Circuit Constraints
 //! 1. Range check: debt in [0, 2^BITS)
 //! 2. Range check: collateral in [0, 2^BITS)

@@ -1,20 +1,8 @@
 /**
- * API Service - 백엔드 통신
+ * API Service - Backend Communication
  *
- * Interview Q&A:
- *
- * Q: 프론트엔드와 백엔드 통신 구조는?
- * A: REST API 사용
- *    - 가격 정보: GET /api/price
- *    - commitment 계산: POST /api/compute-commitment
- *    - ZK 증명 생성: POST /api/prove/*
- *    - 포지션 조회: GET /api/position/:address
- *
- * Q: ZK 증명은 왜 서버에서 생성하는가?
- * A: 1. 클라이언트 리소스 제한 (WASM 크기, 메모리)
- *    2. Proving Key 관리 용이
- *    3. 단, 민감 정보(salt)는 HTTPS로 안전하게 전송
- *    → 향후 클라이언트 사이드 증명도 가능
+ * REST API client for ZK Private Lending backend services.
+ * Handles price feeds, commitment computation, ZK proof generation, and position queries.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -102,12 +90,7 @@ export const api = {
   },
 
   /**
-   * Commitment 계산 (서버에서 해시 계산)
-   *
-   * Q: 왜 commitment를 서버에서 계산하는가?
-   * A: Poseidon 해시가 클라이언트에서 무거울 수 있음
-   *    하지만 salt는 클라이언트에서 생성 (보안)
-   *    → 클라이언트에서 계산하는 옵션도 제공 가능
+   * Compute commitment hash on the server
    */
   computeCommitment: async (
     amount: string,
@@ -134,13 +117,7 @@ export const api = {
   },
 
   /**
-   * LTV 증명 생성
-   *
-   * Q: LTV 증명의 public inputs는?
-   * A: 1. collateral_commitment (온체인에서 검증)
-   *    2. max_ltv (75% = 75)
-   *    3. borrow_amount_commitment (선택적)
-   *    → 실제 담보액과 대출액은 비공개
+   * Generate LTV proof for borrowing
    */
   generateLTVProof: async (params: LTVProofRequest): Promise<ProofResponse> => {
     return fetchAPI<ProofResponse>('/api/prove/ltv', {
@@ -162,11 +139,7 @@ export const api = {
   },
 
   /**
-   * 포지션 정보 조회 (온체인 데이터)
-   *
-   * Q: 왜 API에서 포지션을 조회하는가?
-   * A: 온체인 commitment 정보 + 캐싱
-   *    실제 금액은 로컬에만 있음
+   * Get position information (on-chain data)
    */
   getPosition: async (address: string): Promise<PositionResponse> => {
     return fetchAPI<PositionResponse>(`/api/position/${address}`);

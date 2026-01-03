@@ -2,24 +2,6 @@
 //!
 //! Proves: position is liquidatable (health_factor < 1.0)
 //!
-//! # Interview Q&A
-//!
-//! Q: Health Factor란?
-//! A: 포지션의 건전성 지표
-//!    health_factor = (collateral * price * liquidation_threshold) / debt
-//!
-//!    HF >= 1.0: 안전
-//!    HF < 1.0:  청산 가능
-//!
-//! Q: 왜 청산 증명이 필요한가?
-//! A: 기존 DeFi에서는 포지션 금액이 공개되어 청산 시점 예측 가능
-//!    → MEV 봇이 선행거래로 이익 탈취
-//!
-//!    ZK 청산:
-//!    - 포지션 금액 숨김
-//!    - "청산 가능하다"는 사실만 증명
-//!    - 청산자만 이익 획득
-//!
 //! # Circuit Constraints
 //! 1. Range check: collateral, debt, price in [0, 2^BITS)
 //! 2. Liquidation check: collateral * price * threshold < debt * 100 * 1e8

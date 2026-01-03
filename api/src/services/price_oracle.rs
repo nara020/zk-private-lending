@@ -1,40 +1,7 @@
 //! Price Oracle Service
 //!
-//! # Interview Q&A
-//!
-//! Q: DeFi에서 가격 오라클의 중요성은?
-//! A: 모든 DeFi 프로토콜의 핵심 인프라
-//!
-//!    사용 사례:
-//!    - 렌딩: 담보 가치 평가, 청산 트리거
-//!    - DEX: 가격 발견, 슬리피지 계산
-//!    - 파생상품: 결제 가격 결정
-//!
-//!    위험성:
-//!    - 오라클 조작 → 잘못된 청산 → 자금 탈취
-//!    - 2020년 Harvest Finance: $34M 손실 (오라클 조작)
-//!    - 2022년 Mango Markets: $114M 손실
-//!
-//! Q: Chainlink가 업계 표준인 이유는?
-//! A: 분산화 + 신뢰성
-//!    1. 다수의 독립적인 노드 운영자
-//!    2. 다중 데이터 소스 집계
-//!    3. 이상치 필터링 알고리즘
-//!    4. 경제적 인센티브 (스테이킹)
-//!    5. 검증된 트랙레코드
-//!
-//! Q: TWAP(Time-Weighted Average Price)란?
-//! A: 시간 가중 평균 가격
-//!
-//!    공식: TWAP = Σ(price_i * time_i) / Σ(time_i)
-//!
-//!    장점:
-//!    - 순간적인 가격 조작에 강함
-//!    - 플래시론 공격 방어
-//!
-//!    단점:
-//!    - 가격 반영 지연
-//!    - 급격한 변동 시 부정확
+//! Provides ETH/USD price data with caching for collateral valuation.
+//! Supports mock data for testing and Chainlink integration for production.
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};

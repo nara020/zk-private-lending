@@ -1,18 +1,8 @@
 /**
- * BorrowForm - USDC 대출 폼
+ * BorrowForm - USDC Borrowing Form
  *
- * Interview Q&A:
- *
- * Q: ZK 렌딩에서 대출 프로세스는?
- * A: 1. LTV 증명 생성 (로컬)
- *    2. 증명과 함께 borrow 호출
- *    3. 컨트랙트가 증명 검증
- *    4. 검증 통과 시 USDC 전송
- *
- * Q: 왜 LTV 증명이 필요한가?
- * A: 담보 금액이 숨겨져 있으므로
- *    "담보 >= 대출 * (1/LTV)"를 증명해야 함
- *    실제 금액 노출 없이 자격만 증명
+ * Enables users to borrow USDC against their ETH collateral.
+ * Uses ZK proofs to verify LTV compliance without revealing actual collateral amounts.
  */
 
 import { useState } from 'react';

@@ -14,14 +14,6 @@
 //! | CollateralCircuit | collateral >= threshold | ~200 |
 //! | LTVCircuit | debt/collateral <= max_ltv | ~300 |
 //! | LiquidationCircuit | health_factor < 1.0 | ~350 |
-//!
-//! # Interview Q&A
-//!
-//! Q: 왜 arkworks와 Halo2 둘 다 구현했는가?
-//! A: ZK 기술의 깊은 이해를 증명하기 위해
-//!    - arkworks (R1CS): 학술적 기반, Groth16 최적
-//!    - Halo2 (PLONKish): 실무 표준, L2 채택
-//!    - 두 패러다임의 차이점 직접 비교
 
 pub mod collateral;
 pub mod ltv;

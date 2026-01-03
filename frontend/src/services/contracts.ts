@@ -1,18 +1,8 @@
 /**
- * Contract Service - 스마트 컨트랙트 상호작용
+ * Contract Service - Smart Contract Interactions
  *
- * Interview Q&A:
- *
- * Q: ethers v6의 주요 변경점은?
- * A: 1. BigNumber → bigint (네이티브)
- *    2. Provider/Signer 분리 강화
- *    3. Contract 인터페이스 개선
- *    4. 더 나은 TypeScript 지원
- *
- * Q: 컨트랙트 인터랙션 에러 처리는?
- * A: 1. 가스 추정 실패 → 사용자에게 명확한 에러
- *    2. revert → 컨트랙트 에러 메시지 파싱
- *    3. 트랜잭션 실패 → receipt 확인 후 처리
+ * Handles all interactions with the ZK Lending Pool and USDC contracts.
+ * Built with ethers.js v6 for type-safe contract calls.
  */
 
 import {
@@ -70,13 +60,7 @@ function getUSDCContract(signer: JsonRpcSigner): Contract {
 
 export const contracts = {
   /**
-   * ETH 담보 예치
-   *
-   * Q: deposit 트랜잭션에 포함되는 정보는?
-   * A: 1. value: 예치할 ETH 금액 (공개)
-   *    2. commitment: Hash(amount, salt) (공개)
-   *    → 온체인에서는 commitment만으로는 금액 알 수 없음
-   *    → 하지만 ETH 전송량은 공개됨 (한계점)
+   * Deposit ETH collateral with privacy commitment
    */
   deposit: async (
     signer: JsonRpcSigner,
@@ -102,12 +86,7 @@ export const contracts = {
   },
 
   /**
-   * USDC 대출
-   *
-   * Q: borrow에서 proof는 무엇을 증명하는가?
-   * A: LTV 조건 만족 증명
-   *    - "담보 가치 >= 대출액 / LTV"
-   *    - 실제 담보액 공개 없이 조건만 증명
+   * Borrow USDC with ZK proof of LTV compliance
    */
   borrow: async (
     signer: JsonRpcSigner,
@@ -187,13 +166,7 @@ export const contracts = {
   },
 
   /**
-   * 청산 실행
-   *
-   * Q: 청산자는 어떻게 청산 가능 여부를 아는가?
-   * A: 1. 온체인: 사용자 포지션의 commitment만 공개
-   *    2. 오프체인: 오라클에서 가격 정보 + 청산 조건 공개
-   *    3. 청산자가 증명 생성하여 청산 시도
-   *    → 실제 담보액 모르고도 청산 가능 여부 판단
+   * Execute liquidation with ZK proof
    */
   liquidate: async (
     signer: JsonRpcSigner,

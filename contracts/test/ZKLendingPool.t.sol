@@ -10,18 +10,6 @@ import {IZKVerifier} from "../src/interfaces/IZKVerifier.sol";
 
 /// @title MockVerifier - 테스트용 ZK 검증기
 /// @notice 테스트에서 ZK 검증 결과를 제어할 수 있는 모의 검증기
-/// @dev
-/// == Interview Q&A ==
-/// Q: 왜 MockVerifier가 필요한가?
-/// A: 실제 ZK proof 생성은 복잡하고 시간이 오래 걸림
-///    - Groth16 proof 생성: ~2초 (Rust에서)
-///    - Circuit 컴파일, setup 필요
-///    - 테스트에서는 검증 로직만 테스트하면 됨
-///
-/// Q: 이 방식의 한계는?
-/// A: 실제 ZK 검증이 제대로 작동하는지는 별도 검증 필요
-///    - Integration test에서 실제 proof 사용
-///    - E2E test에서 전체 플로우 검증
 contract MockVerifier is IZKVerifier {
     // 증명 타입별 검증 결과 제어
     mapping(ProofType => bool) public shouldPass;
@@ -67,22 +55,6 @@ contract MockVerifier is IZKVerifier {
 
 /// @title ZKLendingPool 테스트
 /// @notice 핵심 기능 테스트: 예치, 대출, 상환, 출금, 청산
-/// @dev
-/// == 테스트 구조 ==
-/// 1. 기본 기능 테스트 (Deposit, Pool Status)
-/// 2. 대출 플로우 테스트 (Borrow)
-/// 3. 상환 플로우 테스트 (Repay)
-/// 4. 출금 플로우 테스트 (Withdraw)
-/// 5. 청산 플로우 테스트 (Liquidate)
-/// 6. 엣지 케이스 및 보안 테스트
-///
-/// == Interview Q&A ==
-/// Q: DeFi 프로토콜 테스트에서 중요한 점은?
-/// A: 1. Edge cases: 경계값, 0값, 최대값
-///    2. Reentrancy: 재진입 공격 방어
-///    3. State consistency: 상태 일관성
-///    4. Economic attacks: 가격 조작, 플래시론
-///    5. Access control: 권한 검증
 contract ZKLendingPoolTest is Test {
     // ============ 컨트랙트 ============
     ZKLendingPool public pool;
@@ -228,12 +200,6 @@ contract ZKLendingPoolTest is Test {
     // ====================================================================
 
     /// @notice 정상적인 대출 플로우 테스트
-    /// @dev
-    /// Interview Q&A:
-    /// Q: 대출 시 검증되는 항목들은?
-    /// A: 1. CollateralProof - 담보가 충분한지
-    ///    2. LTVProof - 부채/담보 비율이 MAX_LTV 이하인지
-    ///    실제 담보 금액은 ZK proof로만 검증, 공개되지 않음!
     function test_Borrow_Success() public {
         // 1. 담보 예치
         _depositAsAlice();
@@ -304,11 +270,6 @@ contract ZKLendingPoolTest is Test {
     }
 
     /// @notice CollateralProof 실패 시 대출 - 실패해야 함
-    /// @dev
-    /// Interview Q&A:
-    /// Q: CollateralProof가 실패하면?
-    /// A: InvalidProof 에러 발생
-    ///    실제 상황: 담보가 threshold보다 적을 때
     function test_Borrow_RevertInvalidCollateralProof() public {
         _depositAsAlice();
 
@@ -329,12 +290,6 @@ contract ZKLendingPoolTest is Test {
     }
 
     /// @notice LTVProof 실패 시 대출 - 실패해야 함
-    /// @dev
-    /// Interview Q&A:
-    /// Q: LTV(Loan-to-Value)란?
-    /// A: 담보 대비 부채 비율
-    ///    LTV = debt / collateral_value
-    ///    MAX_LTV = 75%면, $100 담보로 최대 $75까지 대출 가능
     function test_Borrow_RevertInvalidLTVProof() public {
         _depositAsAlice();
 
@@ -390,11 +345,6 @@ contract ZKLendingPoolTest is Test {
     // ====================================================================
 
     /// @notice 전액 상환 테스트
-    /// @dev
-    /// Interview Q&A:
-    /// Q: 상환 시 commitment는 어떻게 처리?
-    /// A: nullify - 사용된 commitment를 무효화
-    ///    이중 사용 방지 (double spending prevention)
     function test_Repay_Full() public {
         // Setup: 예치 + 대출
         _depositAsAlice();
@@ -559,16 +509,6 @@ contract ZKLendingPoolTest is Test {
     // ====================================================================
 
     /// @notice 정상 청산 테스트
-    /// @dev
-    /// Interview Q&A:
-    /// Q: 청산은 언제 발생하는가?
-    /// A: Health Factor < 1.0 일 때
-    ///    health = (collateral * price * liq_threshold) / (debt * 100)
-    ///    가격 하락 또는 부채 증가 시 청산 가능 상태가 됨
-    ///
-    /// Q: 청산자의 인센티브는?
-    /// A: LIQUIDATION_BONUS (5%)
-    ///    부채를 대신 갚고, 담보를 5% 보너스 받아 획득
     function test_Liquidate_Success() public {
         // Setup: Alice가 예치 + 대출
         _depositAsAlice();
@@ -609,12 +549,6 @@ contract ZKLendingPoolTest is Test {
     }
 
     /// @notice 청산 불가능한 포지션 청산 시도 - 실패해야 함
-    /// @dev
-    /// Interview Q&A:
-    /// Q: ZK 청산 증명이 필요한 이유는?
-    /// A: MEV 방어!
-    ///    - 청산 시점이 공개되면 MEV 봇이 선행매매
-    ///    - ZK proof로 "청산 가능"만 증명 → 정확한 포지션 예측 불가
     function test_Liquidate_RevertNotLiquidatable() public {
         _depositAsAlice();
         _borrowAsAlice(BORROW_AMOUNT);
@@ -952,13 +886,6 @@ contract ZKLendingPoolTest is Test {
     // ====================================================================
 
     /// @notice 핵심: 동일한 금액도 다른 salt면 다른 commitment
-    /// @dev
-    /// Interview Q&A:
-    /// Q: Commitment 방식의 프라이버시는?
-    /// A: commitment = Hash(amount, salt)
-    ///    - salt가 비밀이므로 amount 추론 불가
-    ///    - 같은 금액이라도 salt가 다르면 다른 commitment
-    ///    - 단방향 해시로 역산 불가
     function test_PrivacyProperty() public {
         uint256 amount = 10 ether;
         uint256 salt1 = 12345;

@@ -2,20 +2,8 @@
 # ZK Private Lending API - Dockerfile
 # ===================================================================
 #
-# Multi-stage build for optimal image size
-#
-# Interview Q&A:
-#
-# Q: 왜 Multi-stage build를 사용하는가?
-# A: 최종 이미지 크기 최소화
-#    - Build stage: 모든 빌드 도구, 의존성 (~2GB)
-#    - Runtime stage: 실행 파일만 (~100MB)
-#    - 보안: 소스코드, 빌드 도구 노출 안 됨
-#
-# Q: Alpine vs Debian?
-# A: 여기서는 Debian slim 사용
-#    - Halo2는 glibc 필요 (Alpine은 musl)
-#    - 더 나은 호환성
+# Multi-stage build for optimal image size.
+# Uses Debian slim for glibc compatibility with Halo2.
 #
 # ===================================================================
 

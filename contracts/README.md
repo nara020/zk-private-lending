@@ -197,9 +197,7 @@ vm.expectRevert(ZKLendingPool.InvalidProof.selector);
 pool.borrow(...);
 ```
 
-**Interview Q&A:**
-- **Q**: 왜 MockVerifier를 사용하는가?
-- **A**: 실제 Groth16 proof 생성은 ~2초 소요. 테스트에서는 검증 로직만 테스트하면 됨. Integration test에서 실제 proof 사용.
+**Note**: MockVerifier is used for testing. Real Groth16 proof generation takes ~2s. Unit tests focus on verification logic; integration tests use actual proofs.
 
 ## ⚙️ 설정값
 

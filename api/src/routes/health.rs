@@ -1,18 +1,7 @@
 //! Health Check Endpoint
 //!
-//! # Interview Q&A
-//!
-//! Q: Health check 엔드포인트는 왜 필요한가?
-//! A: 3가지 용도
-//!    1. 로드밸런서 헬스체크 (ALB, nginx)
-//!    2. Kubernetes liveness/readiness probe
-//!    3. 모니터링 시스템 연동 (Prometheus, Datadog)
-//!
-//! Q: DB 연결 상태도 체크하는 이유는?
-//! A: "깊은 헬스체크"(deep health check) 패턴
-//!    - 단순 200 OK: 프로세스 살아있음
-//!    - DB/Redis 체크: 실제 서비스 가능 상태
-//!    - 외부 의존성 장애 시 트래픽 차단 가능
+//! Provides deep health check including database connectivity status
+//! for load balancer and Kubernetes probe integration.
 
 use axum::{extract::State, Json};
 use serde::Serialize;

@@ -1,13 +1,8 @@
 /**
- * PositionCard - 사용자 포지션 표시
+ * PositionCard - User Position Display
  *
- * Interview Q&A:
- *
- * Q: ZK 렌딩에서 포지션 표시의 특수성은?
- * A: 담보 금액은 사용자 로컬에서만 알 수 있음
- *    - 온체인에는 commitment만 저장
- *    - 사용자가 salt를 알아야 실제 금액 확인 가능
- *    - UI에서는 로컬 스토리지에 저장된 정보 사용
+ * Displays the user's lending position including collateral, debt, and health factor.
+ * Position data is retrieved from local storage as on-chain data only contains commitments.
  */
 
 import { useQuery } from '@tanstack/react-query';

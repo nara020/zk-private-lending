@@ -1,28 +1,6 @@
 //! Price Oracle Endpoints
 //!
-//! # Interview Q&A
-//!
-//! Q: 가격 오라클은 왜 필요한가?
-//! A: DeFi 렌딩에서 담보 가치 평가에 필수
-//!    - 담보 ETH 10개 → $20,000 가치 (ETH = $2,000)
-//!    - 이 가치를 기준으로 대출 한도 계산
-//!    - 가격 변동 시 청산 여부 판단
-//!
-//! Q: 가격 오라클 공격은 어떻게 방어하는가?
-//! A: 여러 방어 전략
-//!    1. 다중 오라클 (Chainlink + Uniswap TWAP)
-//!    2. 가격 변동 제한 (1블록에 10% 이상 변동 거부)
-//!    3. 시간 가중 평균 (TWAP) 사용
-//!    4. 이상치 필터링
-//!
-//!    현재 프로젝트: 단순 가격 피드 (테스트용)
-//!    프로덕션: Chainlink 연동 필수
-//!
-//! Q: 프론트엔드와 컨트랙트 가격이 다르면?
-//! A: 컨트랙트 가격이 진실 (Source of Truth)
-//!    - 프론트는 예상 표시용
-//!    - 실제 거래는 컨트랙트 가격으로 실행
-//!    - 프론트에서 슬리피지 경고 표시
+//! Provides ETH/USD price data for collateral valuation and liquidation checks.
 
 use axum::{extract::State, Json};
 use serde::Serialize;

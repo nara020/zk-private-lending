@@ -1,35 +1,7 @@
 //! Database Models
 //!
-//! # Interview Q&A
-//!
-//! Q: 왜 블록체인 데이터를 DB에 중복 저장하는가?
-//! A: "인덱싱" 패턴 - 블록체인 조회의 한계 극복
-//!
-//!    블록체인 직접 조회 문제:
-//!    - 느림 (매번 노드 RPC 호출)
-//!    - 복잡한 쿼리 불가 (JOIN, 집계 등)
-//!    - 히스토리 조회 어려움 (이벤트 스캔)
-//!
-//!    DB 인덱싱 장점:
-//!    - 빠른 조회 (인덱스 활용)
-//!    - SQL 파워 (복잡한 분석 가능)
-//!    - 캐시 역할
-//!
-//!    주의: 블록체인이 진실의 원천 (Source of Truth)
-//!          DB는 읽기 최적화용 캐시
-//!
-//! Q: borrowed_amount는 왜 DB에 저장하는가? 이것도 숨겨야 하지 않나?
-//! A: 현재 설계의 한계
-//!
-//!    문제: USDC 전송은 온체인에서 공개됨
-//!    → pool.borrow(1000 USDC) 호출 시 1000이 노출
-//!
-//!    개선 방안:
-//!    1. 대출 금액도 commitment로 숨기기
-//!    2. 고정 금액 단위 (100 USDC씩만 대출)
-//!    3. Mixer 활용 (대출 금액 섞기)
-//!
-//!    현재는 MVP로 담보 금액만 숨김
+//! Data models for blockchain event indexing and position tracking.
+//! Stores commitments (hashes) for privacy while indexing public on-chain data.
 
 use chrono::{DateTime, Utc};
 use sqlx::FromRow;

@@ -8,19 +8,6 @@ include "node_modules/circomlib/circuits/poseidon.circom";
  *
  * Proves: position is liquidatable (health_factor < 1.0)
  *
- * Interview Q&A:
- *
- * Q: Health Factor 계산 방식은?
- * A: health_factor = (collateral * price * liq_threshold) / (debt * 100)
- *
- *    HF >= 1.0: 안전
- *    HF < 1.0:  청산 가능
- *
- * Q: 왜 ZK로 청산 증명이 필요한가?
- * A: MEV 방어
- *    - 기존: 포지션 금액 공개 → 청산 시점 예측 → MEV 봇 선행거래
- *    - ZK: "청산 가능"만 증명 → 예측 불가
- *
  * Public Inputs:
  *   - price: Current ETH/USD price (8 decimals)
  *   - liquidation_threshold: Threshold percentage (e.g., 80 = 80%)

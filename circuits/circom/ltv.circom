@@ -8,19 +8,6 @@ include "node_modules/circomlib/circuits/poseidon.circom";
  *
  * Proves: debt/collateral <= max_ltv without revealing amounts
  *
- * Interview Q&A:
- *
- * Q: Circom에서 나눗셈을 어떻게 피하는가?
- * A: 부등식 변환
- *    debt/collateral <= max_ltv/100
- *    → debt * 100 <= collateral * max_ltv
- *
- * Q: Circom의 장점은?
- * A: 빠른 프로토타이핑
- *    - DSL이라 Rust보다 배우기 쉬움
- *    - circomlib에 많은 템플릿 제공
- *    - snarkjs와 연동 편리
- *
  * Public Inputs:
  *   - max_ltv: Maximum LTV percentage (e.g., 75 = 75%)
  *   - collateral_commitment: Poseidon(collateral, collateral_salt)

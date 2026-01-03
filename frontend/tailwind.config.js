@@ -1,12 +1,7 @@
 /**
  * Tailwind CSS Configuration
  *
- * Interview Q&A:
- *
- * Q: Tailwind 설정에서 중요한 점은?
- * A: 1. content 경로 정확히 설정 (PurgeCSS)
- *    2. 프로젝트 디자인 토큰 확장
- *    3. 플러그인 활용 (forms, typography 등)
+ * Custom theme configuration for ZK Private Lending UI.
  */
 
 /** @type {import('tailwindcss').Config} */
