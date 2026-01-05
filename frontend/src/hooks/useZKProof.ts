@@ -102,14 +102,16 @@ export function useZKProof() {
       try {
         setState(s => ({ ...s, isLoading: true, progress: 10 }));
 
-        // WASM 모듈 동적 로드
-        // 실제 구현에서는 circuits/halo2/pkg에서 빌드된 WASM 사용
-        const wasmModule = await import('../../wasm/zk_circuits');
-        await wasmModule.default(); // WASM 초기화
+        // WASM module not available - using API-based proof generation instead
+        // Client-side WASM proving is a future enhancement
+        // For now, proofs are generated via backend API (see api.ts)
+        console.info('ZK proofs will be generated via backend API');
 
         setState(s => ({ ...s, progress: 50 }));
 
-        zkModuleRef.current = wasmModule as unknown as ZKModule;
+        // Mark as initialized but without WASM module
+        // Components should use api.generateCollateralProof() etc. instead
+        zkModuleRef.current = null;
 
         setState(s => ({
           ...s,
@@ -122,7 +124,7 @@ export function useZKProof() {
         setState(s => ({
           ...s,
           isLoading: false,
-          error: 'Failed to load ZK module. Please refresh the page.',
+          error: 'ZK module initialization failed. Using API fallback.',
         }));
       }
     })();
